@@ -2,7 +2,12 @@
 
 #include <memory>
 
+#include <Windows.h>
+#include <d2d1helper.h>
+#include <dwrite.h>
+
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/widget.hpp"
 #include "button_widget.hpp"
 #include "text_widget.hpp"
@@ -11,17 +16,33 @@
 using namespace DirectWidget;
 using namespace Widgets;
 
+property_ptr<PCWSTR> ButtonWidget::TextProperty = make_property<PCWSTR>(L"Button");
+property_ptr<BOUNDS_F> ButtonWidget::PaddingProperty = make_property(BOUNDS_F{ 4, 4, 4, 4 });
+property_ptr<D2D1::ColorF> ButtonWidget::ForegroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
+property_ptr<D2D1::ColorF> ButtonWidget::StrokeColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
+property_ptr<D2D1::ColorF> ButtonWidget::BackgroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::LightGray);
+property_ptr<D2D1::ColorF> ButtonWidget::HoverColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::DimGray);
+property_ptr<D2D1::ColorF> ButtonWidget::PressedColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::DarkGray);
+
 ButtonWidget::ButtonWidget()
 {
+    register_property(TextProperty, m_text);
+    register_property(PaddingProperty, m_padding);
+    register_property(ForegroundColorProperty, m_foreground_color);
+    register_property(StrokeColorProperty, m_stroke_color);
+    register_property(BackgroundColorProperty, m_background_color);
+    register_property(HoverColorProperty, m_hover_color);
+    register_property(PressedColorProperty, m_pressed_color);
+
     m_box_widget = std::make_shared<BoxWidget>();
     m_box_widget->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
     m_box_widget->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
-    add_widget(m_box_widget);
+    add_child(m_box_widget);
 
     m_text_widget = std::make_shared<TextWidget>();
     m_text_widget->set_text_alignment(DWRITE_TEXT_ALIGNMENT_CENTER);
     m_text_widget->set_font_size(14.0f);
-    add_widget(m_text_widget);
+    add_child(m_text_widget);
 }
 
 void ButtonWidget::create_resources() {

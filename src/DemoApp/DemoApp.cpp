@@ -26,46 +26,52 @@ public:
 
         auto row = make_unique<StackLayout>();
         row->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
+        row->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
+        row->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
+        row->set_orientation(STACK_LAYOUT_VERTICAL);
         
         auto title = make_unique<TextWidget>();
         title->set_text(L"Demo App");
         title->set_margin(BOUNDS_F{ 8.0f, 8.0f, 8.0f, 8.0f });
         title->set_font_size(24.0f);
-        title->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
-        row->add_widget(move(title));
+        title->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
+        title->set_vertical_alignment(WIDGET_ALIGNMENT_START);
+        row->add_child(move(title));
 
         auto description = make_unique<TextWidget>();
         description->set_text(L"This is a sample demo app using DirectWidget.");
         description->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
-        row->add_widget(move(description));
+        description->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
+        row->add_child(move(description));
 
         auto counter = make_unique<TextWidget>();
         counter->set_text(L"Counter: 0");
         counter->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
-        row->add_widget(move(counter));
+        counter->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
+        row->add_child(move(counter));
 
         auto center_align = make_unique<TextWidget>();
         center_align->set_text(L"Center Aligned");
         center_align->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         center_align->set_horizontal_alignment(WIDGET_ALIGNMENT_CENTER);
-        row->add_widget(move(center_align));
+        row->add_child(move(center_align));
 
         auto end_align = make_unique<TextWidget>();
         end_align->set_text(L"End Aligned");
         end_align->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         end_align->set_horizontal_alignment(WIDGET_ALIGNMENT_END);
-        row->add_widget(move(end_align));
+        row->add_child(move(end_align));
 
         auto buttons_column = make_unique<StackLayout>();
         buttons_column->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
-        buttons_column->set_horizontal();
+        buttons_column->set_orientation(STACK_LAYOUT_HORIZONTAL);
 
         auto increment_button = make_unique<ButtonWidget>();
         increment_button->set_text(L"Increment");
         increment_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         increment_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
         increment_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
-        buttons_column->add_widget(std::move(increment_button));
+        buttons_column->add_child(std::move(increment_button));
 
         auto exit_button = make_unique<ButtonWidget>();
         exit_button->set_text(L"Exit");
@@ -75,9 +81,9 @@ public:
         exit_button->set_click_handler([this]() {
             DestroyWindow(this->window_handle());
         });
-        buttons_column->add_widget(move(exit_button));
+        buttons_column->add_child(move(exit_button));
 
-        row->add_widget(move(buttons_column));
+        row->add_child(move(buttons_column));
 
         set_root_widget(move(row));
     }
@@ -102,7 +108,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     auto& app = DirectWidget::Application::instance();
     
 #ifdef _DEBUG
-    //app->enable_debug();
+    app->enable_debug();
 #endif // DEBUG
 
     auto hr = app->initialize();

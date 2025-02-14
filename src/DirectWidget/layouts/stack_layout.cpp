@@ -2,11 +2,14 @@
 // StackLayout is a widget that arranges its children in a horizontal or vertical stack.
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/widget.hpp"
 #include "stack_layout.hpp"
 
 using namespace DirectWidget;
 using namespace Layouts;
+
+property_ptr<STACK_LAYOUT_ORIENTATION> StackLayout::OrientationProperty = make_property(STACK_LAYOUT_HORIZONTAL);
 
 void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const
 {
@@ -22,7 +25,7 @@ void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, B
             available_bounds.top + node->layout_size.height
         };
 
-        if (is_horizontal()) {
+        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             node_constraints.bottom = available_bounds.bottom;
         }
         else {
@@ -31,7 +34,7 @@ void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, B
 
         node->widget->layout(node_constraints, node->layout_bounds, node->render_bounds);
 
-        if (is_horizontal()) {
+        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             available_bounds.left += node->layout_size.width;
         }
         else {
@@ -44,14 +47,14 @@ void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, B
 
 SIZE_F StackLayout::measure(const SIZE_F& available_size) const
 {
-    auto flex_size = is_horizontal()
+    auto flex_size = m_orientation == STACK_LAYOUT_HORIZONTAL
         ? available_size.width
         : available_size.height;
     auto flex_count = 0;
 
     // First pass: Measure non-stretch widgets and determine flex count
     for (auto& node : m_nodes) {
-        if (is_horizontal()) {
+        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             if (node->widget->horizontal_alignment() == WIDGET_ALIGNMENT_STRETCH) {
                 flex_count++;
             }
@@ -73,7 +76,7 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
         }
     }
 
-    auto non_flex_size = (is_horizontal()
+    auto non_flex_size = (m_orientation == STACK_LAYOUT_HORIZONTAL
         ? available_size.width
         : available_size.height) - flex_size;
 
@@ -85,7 +88,7 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
 
     // Second pass: Assign sizes to stretch widgets and compute total size
     for (auto& node : m_nodes) {
-        if (is_horizontal()) {
+        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             if (node->widget->horizontal_alignment() == WIDGET_ALIGNMENT_STRETCH) {
                 node->measure = node->widget->measure(SIZE_F{ flex_size - node->widget->margin().left - node->widget->margin().right, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
                 node->layout_size.width = flex_size;

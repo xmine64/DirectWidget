@@ -9,12 +9,21 @@
 #include <dwrite.h>
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/app.hpp"
 #include "../core/widget.hpp"
 #include "text_widget.hpp"
 
 using namespace DirectWidget;
 using namespace Widgets;
+
+property_ptr<PCWSTR> TextWidget::TextProperty = make_property<PCWSTR>(L"Text");
+property_ptr<PCWSTR> TextWidget::FontFamilyProperty = make_property<PCWSTR>(L"Segoe UI");
+property_ptr<float> TextWidget::FontSizeProperty = make_property(12.0f);
+property_ptr<D2D1::ColorF> TextWidget::ColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
+property_ptr<DWRITE_FONT_WEIGHT> TextWidget::FontWeightProperty = make_property(DWRITE_FONT_WEIGHT_NORMAL);
+property_ptr<DWRITE_TEXT_ALIGNMENT> TextWidget::TextAlignmentProperty = make_property(DWRITE_TEXT_ALIGNMENT_LEADING);
+property_ptr<DWRITE_PARAGRAPH_ALIGNMENT> TextWidget::ParagraphAlignmentProperty = make_property(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 void TextWidget::create_resources()
 {
@@ -72,7 +81,7 @@ void TextWidget::create_resources()
     if (m_text_layout == nullptr) {
         hr = dwrite->CreateTextLayout(
             m_text,
-            wcslen(m_text),
+            static_cast<UINT32>(wcslen(m_text)),
             m_text_format,
             render_bounds().right - render_bounds().left,
             render_bounds().bottom - render_bounds().top,

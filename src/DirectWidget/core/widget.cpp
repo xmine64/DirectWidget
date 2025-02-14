@@ -8,6 +8,7 @@
 #include "foundation.hpp"
 #include "app.hpp"
 #include "widget.hpp"
+#include "property.hpp"
 
 using namespace DirectWidget;
 
@@ -93,7 +94,7 @@ void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BO
     layout_bounds.bottom = render_bounds.bottom + m_margin.bottom;
 }
 
-void DirectWidget::WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
+void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
 {
     m_layout.render_bounds = render_bounds;
 
@@ -109,7 +110,7 @@ void DirectWidget::WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
     on_layout_finalized(render_bounds);
 }
 
-void DirectWidget::WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
+void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
 {
     if (m_layout.geometry == nullptr)
         return;
@@ -149,7 +150,7 @@ void DirectWidget::WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarg
         });
 }
 
-void DirectWidget::WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target)
+void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target)
 {
     m_render_target = render_target;
     for_each_child([render_target](WidgetBase* widget) {
@@ -157,7 +158,7 @@ void DirectWidget::WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTar
         });
 }
 
-void DirectWidget::WidgetBase::detach_render_target()
+void WidgetBase::detach_render_target()
 {
     discard_resources();
     m_render_target = nullptr;
@@ -166,7 +167,7 @@ void DirectWidget::WidgetBase::detach_render_target()
         });
 }
 
-void DirectWidget::WidgetBase::render() const
+void WidgetBase::render() const
 {
     auto bounds = m_layout.render_bounds;
     auto bounds_rect = D2D1::RectF(bounds.left, bounds.top, bounds.right, bounds.bottom);
@@ -205,3 +206,7 @@ bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
     return result;
 }
 
+property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
+property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
+property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
+property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);

@@ -6,6 +6,7 @@
 // Standard headers
 
 #include <functional>
+#include <memory>
 
 // Windows headers
 
@@ -16,6 +17,7 @@
 // Local headers
 
 #include "foundation.hpp"
+#include "property.hpp"
 
 namespace DirectWidget {
 
@@ -34,23 +36,28 @@ namespace DirectWidget {
         WIDGET_ALIGNMENT_STRETCH,
     };
 
-    class WidgetBase
+    class WidgetBase : public PropertyOwnerBase
     {
     public:
         
         // properties
 
-        SIZE_F size() const { return m_size; }
-        void set_size(const SIZE_F& size) { m_size = size; }
+        static property_ptr<SIZE_F> SizeProperty;
+        static property_ptr<BOUNDS_F> MarginProperty;
+        static property_ptr<WIDGET_ALIGNMENT> VerticalAlignmentProperty;
+        static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
 
-        BOUNDS_F margin() const { return m_margin; }
-        void set_margin(const BOUNDS_F& margin) { m_margin = margin; }
+        SIZE_F size() const { return get_property<SIZE_F>(SizeProperty); }
+        void set_size(const SIZE_F& size) { set_property<SIZE_F>(SizeProperty, size); }
 
-        WIDGET_ALIGNMENT vertical_alignment() const { return m_vertical_alignment; }
-        void set_vertical_alignment(WIDGET_ALIGNMENT alignment) { m_vertical_alignment = alignment; }
+        BOUNDS_F margin() const { return get_property<BOUNDS_F>(MarginProperty); }
+        void set_margin(const BOUNDS_F& margin) { set_property<BOUNDS_F>(MarginProperty, margin); }
 
-        WIDGET_ALIGNMENT horizontal_alignment() const { return m_horizontal_alignment; }
-        void set_horizontal_alignment(WIDGET_ALIGNMENT alignment) { m_horizontal_alignment = alignment; }
+        WIDGET_ALIGNMENT vertical_alignment() const { return get_property<WIDGET_ALIGNMENT>(VerticalAlignmentProperty); }
+        void set_vertical_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(VerticalAlignmentProperty, alignment); }
+
+        WIDGET_ALIGNMENT horizontal_alignment() const { return get_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty); }
+        void set_horizontal_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty, alignment); }
 
         // layout
 
@@ -94,6 +101,13 @@ namespace DirectWidget {
 
     protected:
 
+        WidgetBase() {
+            register_property(SizeProperty, m_size);
+            register_property(MarginProperty, m_margin);
+            register_property(VerticalAlignmentProperty, m_vertical_alignment);
+            register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
+        }
+
         virtual void for_each_child(std::function<void(WidgetBase*)> callback) const {}
         
         virtual void on_layout_finalized(const BOUNDS_F& render_bounds) {}
@@ -105,11 +119,11 @@ namespace DirectWidget {
 
         float m_dpi = 1.0f;
         
-        LAYOUT_STATE m_layout;
+        LAYOUT_STATE m_layout{};
 
         SIZE_F m_size;
         BOUNDS_F m_margin;
-        WIDGET_ALIGNMENT m_vertical_alignment = WIDGET_ALIGNMENT_START;
-        WIDGET_ALIGNMENT m_horizontal_alignment = WIDGET_ALIGNMENT_START;
+        WIDGET_ALIGNMENT m_vertical_alignment;
+        WIDGET_ALIGNMENT m_horizontal_alignment;
     };
 }

@@ -74,5 +74,8 @@
     <ClInclude Include="layouts\stack_layout.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\property.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

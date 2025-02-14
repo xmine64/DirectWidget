@@ -4,22 +4,30 @@
 #pragma once
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "layout_widget.hpp"
 
 namespace DirectWidget {
     namespace Layouts {
+
+        enum STACK_LAYOUT_ORIENTATION {
+            STACK_LAYOUT_HORIZONTAL,
+            STACK_LAYOUT_VERTICAL
+        };
 
         class StackLayout : public LayoutWidgetBase
         {
         public:
 
             // properties
+            static property_ptr<STACK_LAYOUT_ORIENTATION> OrientationProperty;
 
-            bool is_horizontal() const { return m_orientation; }
-            void set_horizontal() { m_orientation = true; }
-
-            bool is_vertical() const { return !m_orientation; }
-            void set_vertical() { m_orientation = false; }
+            STACK_LAYOUT_ORIENTATION get_orientation() const { return get_property(OrientationProperty); }
+            void set_orientation(STACK_LAYOUT_ORIENTATION value) { set_property(OrientationProperty, value); }
+            
+            StackLayout() {
+                register_property(OrientationProperty, m_orientation);
+            }
 
             // layout
 
@@ -28,7 +36,8 @@ namespace DirectWidget {
             SIZE_F measure(const SIZE_F& available_size) const override;
 
         private:
-            bool m_orientation = false;
+
+            STACK_LAYOUT_ORIENTATION m_orientation;
         };
 
     }

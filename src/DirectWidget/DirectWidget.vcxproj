@@ -181,6 +181,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\app.hpp" />
+    <ClInclude Include="core\property.hpp" />
     <ClInclude Include="layouts\stack_layout.hpp" />
     <ClInclude Include="widgets\button_widget.hpp" />
     <ClInclude Include="widgets\composite_widget.hpp" />

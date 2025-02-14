@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -18,7 +19,14 @@ namespace DirectWidget {
 
             // properties
             
-            void add_widget(std::shared_ptr<WidgetBase> widget) { m_children.push_back(widget); }
+            static collection_property_ptr<std::shared_ptr<WidgetBase>> ChildrenProperty;
+
+            void add_child(std::shared_ptr<WidgetBase> widget) { add_to_collection(ChildrenProperty, widget); }
+            void remove_child(std::shared_ptr<WidgetBase> widget) { remove_from_collection(ChildrenProperty, widget); }
+
+            CompositeWidget() {
+                register_collection(ChildrenProperty, m_children);
+            }
 
             // layout
             

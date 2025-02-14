@@ -8,6 +8,8 @@
 #include <d2d1helper.h>
 #include <dwrite.h>
 
+#include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -19,26 +21,44 @@ namespace DirectWidget {
 
             // properties
 
-            const PCWSTR& text() const { return m_text; }
-            void set_text(PCWSTR text) { m_text = text; }
+            static property_ptr<PCWSTR> TextProperty;
+            static property_ptr<PCWSTR> FontFamilyProperty;
+            static property_ptr<float> FontSizeProperty;
+            static property_ptr<D2D1::ColorF> ColorProperty;
+            static property_ptr<DWRITE_FONT_WEIGHT> FontWeightProperty;
+            static property_ptr<DWRITE_TEXT_ALIGNMENT> TextAlignmentProperty;
+            static property_ptr<DWRITE_PARAGRAPH_ALIGNMENT> ParagraphAlignmentProperty;
+
+            const PCWSTR& text() const { return get_property(TextProperty); }
+            void set_text(PCWSTR text) { set_property(TextProperty, text); }
             
-            const PCWSTR& font_family() const { return m_font_family; }
-            void set_font_family(PCWSTR font_family) { m_font_family = font_family; }
+            const PCWSTR& font_family() const { return get_property(FontFamilyProperty); }
+            void set_font_family(PCWSTR font_family) { set_property(FontFamilyProperty, font_family); }
             
-            float font_size() const { return m_size; }
-            void set_font_size(float size) { m_size = size; }
+            float font_size() const { return get_property(FontSizeProperty); }
+            void set_font_size(float size) { set_property(FontSizeProperty, size); }
             
-            D2D1::ColorF color() const { return m_color; }
-            void set_color(D2D1::ColorF color) { m_color = color; }
+            D2D1::ColorF color() const { return get_property(ColorProperty); }
+            void set_color(D2D1::ColorF color) { set_property(ColorProperty, color); }
             
-            DWRITE_FONT_WEIGHT font_weight() const { return m_weight; }
-            void set_font_weight(DWRITE_FONT_WEIGHT weight) { m_weight = weight; }
+            DWRITE_FONT_WEIGHT font_weight() const { return get_property(FontWeightProperty); }
+            void set_font_weight(DWRITE_FONT_WEIGHT weight) { set_property(FontWeightProperty, weight); }
             
-            DWRITE_TEXT_ALIGNMENT text_alignment() const { return m_alignment; }
-            void set_text_alignment(DWRITE_TEXT_ALIGNMENT alignment) { m_alignment = alignment; }
+            DWRITE_TEXT_ALIGNMENT text_alignment() const { return get_property(TextAlignmentProperty); }
+            void set_text_alignment(DWRITE_TEXT_ALIGNMENT alignment) { set_property(TextAlignmentProperty, alignment); }
             
-            DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment() const { return m_vertical_alignment; }
-            void set_paragraph_alignment(DWRITE_PARAGRAPH_ALIGNMENT alignment) { m_vertical_alignment = alignment; }
+            DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment() const { return get_property(ParagraphAlignmentProperty); }
+            void set_paragraph_alignment(DWRITE_PARAGRAPH_ALIGNMENT alignment) { set_property(ParagraphAlignmentProperty, alignment); }
+
+            TextWidget() {
+                register_property(TextProperty, m_text);
+                register_property(FontFamilyProperty, m_font_family);
+                register_property(FontSizeProperty, m_size);
+                register_property(ColorProperty, m_color);
+                register_property(FontWeightProperty, m_weight);
+                register_property(TextAlignmentProperty, m_alignment);
+                register_property(ParagraphAlignmentProperty, m_vertical_alignment);
+            }
 
             // layout
 

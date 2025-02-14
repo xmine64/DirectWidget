@@ -9,6 +9,7 @@
 #include <d2d1helper.h>
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "composite_widget.hpp"
 #include "text_widget.hpp"
 #include "box_widget.hpp"
@@ -24,26 +25,34 @@ namespace DirectWidget {
 
             // properties
 
+            static property_ptr<PCWSTR> TextProperty;
+            static property_ptr<BOUNDS_F> PaddingProperty;
+            static property_ptr<D2D1::ColorF> ForegroundColorProperty;
+            static property_ptr<D2D1::ColorF> StrokeColorProperty;
+            static property_ptr<D2D1::ColorF> BackgroundColorProperty;
+            static property_ptr<D2D1::ColorF> HoverColorProperty;
+            static property_ptr<D2D1::ColorF> PressedColorProperty;
+
             const PCWSTR& text() const { return m_text; }
-            void set_text(const PCWSTR& text) { m_text = text; }
+            void set_text(const PCWSTR& text) { set_property(TextProperty, text); }
 
             BOUNDS_F padding() { return m_padding; }
-            void set_padding(const BOUNDS_F& padding) { m_padding = padding; }
+            void set_padding(const BOUNDS_F& padding) { set_property(PaddingProperty, padding); }
 
             D2D1::ColorF foreground_color() const { return m_foreground_color; }
-            void set_foreground_color(D2D1::ColorF color) { m_foreground_color = color; }
+            void set_foreground_color(D2D1::ColorF color) { set_property(ForegroundColorProperty, color); }
 
             D2D1::ColorF stroke_color() const { return m_stroke_color; }
-            void set_stroke_color(D2D1::ColorF color) { m_stroke_color = color; }
+            void set_stroke_color(D2D1::ColorF color) { set_property(StrokeColorProperty, color); }
 
             D2D1::ColorF background_color() const { return m_background_color; }
-            void set_background_color(D2D1::ColorF color) { m_background_color = color; }
+            void set_background_color(D2D1::ColorF color) { set_property(BackgroundColorProperty, color); }
 
             D2D1::ColorF hover_color() const { return m_hover_color; }
-            void set_hover_color(D2D1::ColorF color) { m_hover_color = color; }
+            void set_hover_color(D2D1::ColorF color) { set_property(HoverColorProperty, color); }
 
             D2D1::ColorF pressed_color() const { return m_pressed_color; }
-            void set_pressed_color(D2D1::ColorF color) { m_pressed_color = color; }
+            void set_pressed_color(D2D1::ColorF color) { set_property(PressedColorProperty, color); }
 
             void set_click_handler(std::function<void()> handler) { m_click_handler = handler; }
 

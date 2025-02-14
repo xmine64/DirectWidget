@@ -5,8 +5,10 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "../core/foundation.hpp"
+#include "../core/property.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -14,7 +16,7 @@ namespace DirectWidget {
 
         typedef struct {
 
-            std::unique_ptr<WidgetBase> widget;
+            std::shared_ptr<WidgetBase> widget;
 
             SIZE_F measure;
 
@@ -31,7 +33,10 @@ namespace DirectWidget {
 
             // properties
 
-            void add_widget(std::unique_ptr<WidgetBase> widget) { auto node = std::make_unique<LAYOUT_NODE>(); node->widget = std::move(widget); m_nodes.push_back(std::move(node)); }
+            static collection_property_ptr<std::shared_ptr<WidgetBase>> ChildrenProperty;
+
+            void add_child(std::shared_ptr<WidgetBase> widget) { add_to_collection(ChildrenProperty, widget); }
+            void remove_child(std::shared_ptr<WidgetBase> widget) { remove_from_collection(ChildrenProperty, widget); }
 
             // layout
 
@@ -48,9 +53,20 @@ namespace DirectWidget {
 
         protected:
 
+            LayoutWidgetBase() {
+                register_collection(ChildrenProperty, m_children);
+            }
+
             void for_each_child(std::function<void(WidgetBase*)> callback) const override { for (auto& node : m_nodes) { callback(node->widget.get()); } }
 
             std::vector<std::unique_ptr<LAYOUT_NODE>> m_nodes;
+
+        private:
+
+            static void on_children_changed(PropertyOwnerBase* sender, ObservableCollectionProperty<std::shared_ptr<WidgetBase>>* property, const std::shared_ptr<WidgetBase>& value, bool added);
+
+            std::vector<std::shared_ptr<WidgetBase>> m_children;
+
         };
 
     }
