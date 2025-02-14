@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <string>
 
 #include <Windows.h>
 #include <comdef.h>
@@ -30,50 +31,58 @@ public:
         row->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
         row->set_orientation(STACK_LAYOUT_VERTICAL);
         
-        auto title = make_unique<TextWidget>();
+        auto title = make_shared<TextWidget>();
         title->set_text(L"Demo App");
         title->set_margin(BOUNDS_F{ 8.0f, 8.0f, 8.0f, 8.0f });
         title->set_font_size(24.0f);
         title->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
         title->set_vertical_alignment(WIDGET_ALIGNMENT_START);
-        row->add_child(move(title));
+        row->add_child(title);
 
-        auto description = make_unique<TextWidget>();
+        auto description = make_shared<TextWidget>();
         description->set_text(L"This is a sample demo app using DirectWidget.");
         description->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         description->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
-        row->add_child(move(description));
+        row->add_child(description);
 
-        auto counter = make_unique<TextWidget>();
+        auto counter = make_shared<TextWidget>();
         counter->set_text(L"Counter: 0");
         counter->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         counter->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
-        row->add_child(move(counter));
+        row->add_child(counter);
+        m_counter_widget = counter;
 
-        auto center_align = make_unique<TextWidget>();
+        auto center_align = make_shared<TextWidget>();
         center_align->set_text(L"Center Aligned");
         center_align->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         center_align->set_horizontal_alignment(WIDGET_ALIGNMENT_CENTER);
-        row->add_child(move(center_align));
+        row->add_child(center_align);
 
-        auto end_align = make_unique<TextWidget>();
+        auto end_align = make_shared<TextWidget>();
         end_align->set_text(L"End Aligned");
         end_align->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         end_align->set_horizontal_alignment(WIDGET_ALIGNMENT_END);
-        row->add_child(move(end_align));
+        row->add_child(end_align);
 
-        auto buttons_column = make_unique<StackLayout>();
+        auto buttons_column = make_shared<StackLayout>();
         buttons_column->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         buttons_column->set_orientation(STACK_LAYOUT_HORIZONTAL);
 
-        auto increment_button = make_unique<ButtonWidget>();
+        auto increment_button = make_shared<ButtonWidget>();
         increment_button->set_text(L"Increment");
         increment_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         increment_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
         increment_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
-        buttons_column->add_child(std::move(increment_button));
+        increment_button->set_click_handler([this]() {
+            m_counter_text.clear();
+            m_counter_text.append(L"Counter: ");
+            m_counter_text.append(to_wstring(++m_counter));
+            m_counter_widget->set_text(m_counter_text.c_str());
+            InvalidateRect(window_handle(), NULL, FALSE);
+            });
+        buttons_column->add_child(increment_button);
 
-        auto exit_button = make_unique<ButtonWidget>();
+        auto exit_button = make_shared<ButtonWidget>();
         exit_button->set_text(L"Exit");
         exit_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         exit_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
@@ -81,9 +90,9 @@ public:
         exit_button->set_click_handler([this]() {
             DestroyWindow(this->window_handle());
         });
-        buttons_column->add_child(move(exit_button));
+        buttons_column->add_child(exit_button);
 
-        row->add_child(move(buttons_column));
+        row->add_child(buttons_column);
 
         set_root_widget(move(row));
     }
@@ -94,7 +103,10 @@ public:
     bool on_destroy() override { PostQuitMessage(0); return true; }
 
 private:
+
     int m_counter = 0;
+    wstring m_counter_text{ L"Counter: 0" };
+    shared_ptr<TextWidget> m_counter_widget;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,

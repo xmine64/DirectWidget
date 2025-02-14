@@ -47,6 +47,10 @@ namespace DirectWidget {
         static property_ptr<WIDGET_ALIGNMENT> VerticalAlignmentProperty;
         static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
 
+        // Not an actual property, but can be used as dependency for resources
+        static property_base_ptr RenderTargetProperty;
+        static property_base_ptr LayoutProperty;
+
         SIZE_F size() const { return get_property<SIZE_F>(SizeProperty); }
         void set_size(const SIZE_F& size) { set_property<SIZE_F>(SizeProperty, size); }
 

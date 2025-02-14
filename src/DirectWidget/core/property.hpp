@@ -11,29 +11,88 @@
 namespace DirectWidget {
 
     class PropertyOwnerBase;
+    using property_owner_ptr = std::shared_ptr<PropertyOwnerBase>;
+    using sender_ptr = PropertyOwnerBase*;
+
+    class PropertyBase;
+    using property_base_ptr = std::shared_ptr<PropertyBase>;
+    using property_token = PropertyBase*;
 
     template <typename T>
     class Property;
-
     template <typename T>
     using property_ptr = std::shared_ptr<Property<T>>;
 
     template <typename T>
-    using PropertyChangeCallback = std::function<void(PropertyOwnerBase* sender, const T& old_value, const T& new_value)>;
-
-    template <typename T>
     class ObservableCollectionProperty;
-
     template <typename T>
     using collection_property_ptr = std::shared_ptr<ObservableCollectionProperty<T>>;
 
+    class PropertyListenerBase;
+    using property_listener_ptr = std::shared_ptr<PropertyListenerBase>;
+
     template <typename T>
-    using CollectionChangedCallback = std::function<void(PropertyOwnerBase* sender, ObservableCollectionProperty<T>* property, const T& value, bool added)>;
+    class PropertyValueListener;
+    template <typename T>
+    using property_value_listener_ptr = std::shared_ptr<PropertyValueListener<T>>;
+
+    template <typename T>
+    class CollectionListener;
+    template <typename T>
+    using collection_listener_ptr = std::shared_ptr<CollectionListener<T>>;
+
+    class PropertyListenerBase {
+
+    public:
+        virtual ~PropertyListenerBase() = default;
+
+        virtual void on_property_changed(sender_ptr sender, property_token property) = 0;
+
+    };
+
+    template <typename T>
+    class PropertyValueListener : public PropertyListenerBase {
+
+    public:
+
+        void on_property_changed(sender_ptr sender, property_token property) override {}
+
+        virtual void on_property_changed(sender_ptr sender, property_token property, const T& old_value, const T& new_value) = 0;
+
+    };
+
+    template <typename T>
+    class CollectionListener : public PropertyListenerBase {
+
+    public:
+
+        void on_property_changed(sender_ptr sender, property_token property) override {}
+
+        virtual void on_collection_changed(sender_ptr sender, property_token property, const T& value, bool add_or_remove) = 0;
+    };
 
     class PropertyBase {
 
     public:
         virtual ~PropertyBase() = default;
+
+        void add_listener(const property_listener_ptr& listener) {
+            m_listeners.push_back(listener);
+        }
+
+        void remove_listener(const property_listener_ptr& listener) {
+            m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
+        }
+
+        void notify_change(PropertyOwnerBase* sender) {
+            for (auto& listener : m_listeners) {
+                listener->on_property_changed(sender, this);
+            }
+        }
+
+    private:
+
+        std::vector<property_listener_ptr> m_listeners;
 
     };
 
@@ -48,23 +107,28 @@ namespace DirectWidget {
             return m_default_value;
         }
 
-        void register_callback(PropertyChangeCallback<T> callback) {
-            if (callback == nullptr)
-                return;
-            m_callbacks.push_back(callback);
+        void add_listener(const property_value_listener_ptr<T>& listener) {
+            m_listeners.push_back(listener);
+        }
+
+        void remove_listener(const property_value_listener_ptr<T>& listener) {
+            m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
         }
 
         void notify_change(PropertyOwnerBase* sender, const T& old_value, const T& new_value) {
-            for (auto& callback : m_callbacks) {
-                callback(sender, old_value, new_value);
+            for (auto& listener : m_listeners) {
+                listener->on_property_changed(sender, this, old_value, new_value);
+                listener->on_property_changed(sender, this);
             }
+
+            PropertyBase::notify_change(sender);
         }
 
     private:
 
         const T m_default_value;
 
-        std::vector<PropertyChangeCallback<T>> m_callbacks;
+        std::vector<property_value_listener_ptr<T>> m_listeners;
     };
 
     template <typename P>
@@ -77,28 +141,30 @@ namespace DirectWidget {
 
     public:
 
-        void register_callback(CollectionChangedCallback<T> callback) {
-            if (callback == nullptr)
-                return;
-            m_callbacks.push_back(callback);
+        void add_listener(const collection_listener_ptr<T>& listener) {
+            m_listeners.push_back(listener);
         }
 
-        void notify_change(PropertyOwnerBase* sender, const T& value, bool added) {
-            for (auto& callback : m_callbacks) {
-                callback(sender, this, value, added);
+        void remove_listener(const collection_listener_ptr<T>& listener) {
+            m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
+        }
+
+        void notify_change(PropertyOwnerBase* sender, const T& value, bool add_or_remove) {
+            for (auto& listener : m_listeners) {
+                listener->on_collection_changed(sender, this, value, add_or_remove);
             }
+
+            PropertyBase::notify_change(sender);
         }
 
     private:
 
-        std::vector<CollectionChangedCallback<T>> m_callbacks;
+        std::vector<collection_listener_ptr<T>> m_listeners;
     };
 
     template <typename C>
-    collection_property_ptr<C> make_collection(const CollectionChangedCallback<C>& callback) {
-        auto result = std::make_shared<ObservableCollectionProperty<C>>();
-        result->register_callback(callback);
-        return result;
+    collection_property_ptr<C> make_collection() {
+        return std::make_shared<ObservableCollectionProperty<C>>();
     }
 
     class PropertyOwnerBase {
@@ -118,7 +184,7 @@ namespace DirectWidget {
         template<typename P>
         void set_property(const property_ptr<P>& property, const P& value) {
             for (auto& [prop, ptr] : m_properties) {
-                if (prop == property) {
+                if (prop.get() == property.get()) {
                     auto old_value = *static_cast<P*>(ptr);
                     *static_cast<P*>(ptr) = value;
                     property->notify_change(this, old_value, value);
@@ -181,6 +247,4 @@ namespace DirectWidget {
         std::unordered_map<std::shared_ptr<PropertyBase>, void*> m_properties;
 
     };
-
-    using property_owner_ptr = std::shared_ptr<PropertyOwnerBase>;
 }

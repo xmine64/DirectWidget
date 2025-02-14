@@ -168,6 +168,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="core\app.cpp" />
+    <ClCompile Include="core\resource.cpp" />
     <ClCompile Include="layouts\layout_widget.cpp" />
     <ClCompile Include="core\widget.cpp" />
     <ClCompile Include="widgets\box_widget.cpp" />
@@ -182,6 +183,7 @@
   <ItemGroup>
     <ClInclude Include="core\app.hpp" />
     <ClInclude Include="core\property.hpp" />
+    <ClInclude Include="core\resource.hpp" />
     <ClInclude Include="layouts\stack_layout.hpp" />
     <ClInclude Include="widgets\button_widget.hpp" />
     <ClInclude Include="widgets\composite_widget.hpp" />

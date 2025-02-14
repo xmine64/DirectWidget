@@ -9,7 +9,9 @@
 #include <dwrite.h>
 
 #include "../core/foundation.hpp"
+#include "../core/app.hpp"
 #include "../core/property.hpp"
+#include "../core/resource.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -58,6 +60,54 @@ namespace DirectWidget {
                 register_property(FontWeightProperty, m_weight);
                 register_property(TextAlignmentProperty, m_alignment);
                 register_property(ParagraphAlignmentProperty, m_vertical_alignment);
+
+                m_text_fill = make_resource<ID2D1Brush>([this]() {
+                    com_ptr<ID2D1SolidColorBrush> brush;
+                    render_target()->CreateSolidColorBrush(m_color, &brush); // TODO: error handling
+                    return brush;
+                    });
+                m_text_fill->bind(RenderTargetProperty);
+                m_text_fill->bind(ColorProperty);
+
+                m_text_format = make_resource<IDWriteTextFormat>([this]() {
+                    com_ptr<IDWriteTextFormat> text_format;
+                    auto& dwrite = Application::instance()->dwrite();
+                    dwrite->CreateTextFormat(
+                        m_font_family,
+                        NULL,
+                        m_weight,
+                        DWRITE_FONT_STYLE_NORMAL,
+                        DWRITE_FONT_STRETCH_NORMAL,
+                        m_size,
+                        L"en-us",
+                        &text_format); // TODO: error handling
+                    text_format->SetTextAlignment(m_alignment);
+                    text_format->SetParagraphAlignment(m_vertical_alignment);
+                    return text_format;
+                    });
+                m_text_format->bind(FontFamilyProperty);
+                m_text_format->bind(FontWeightProperty);
+                m_text_format->bind(FontSizeProperty);
+
+                // TODO: add listener to update TextAlignment and ParagraphAlignment
+                
+                m_text_layout = make_resource<IDWriteTextLayout>([this]() {
+                    com_ptr<IDWriteTextLayout> text_layout;
+                    auto& dwrite = Application::instance()->dwrite();
+                    dwrite->CreateTextLayout(
+                        m_text,
+                        static_cast<UINT32>(wcslen(m_text)),
+                        m_text_format->get(),
+                        render_bounds().right - render_bounds().left,
+                        render_bounds().bottom - render_bounds().top,
+                        &text_layout); // TODO: error handling
+                    return text_layout;
+                    });
+                m_text_layout->bind(TextProperty);
+                m_text_layout->bind(m_text_format);
+                //m_text_layout->bind(LayoutProperty);
+
+                // TODO: add listener to update MaxWidth and MaxHeight
             }
 
             // layout
@@ -65,11 +115,6 @@ namespace DirectWidget {
             SIZE_F measure(const SIZE_F& available_size) const override;
 
             void on_layout_finalized(const BOUNDS_F& render_bounds) override;
-
-            // render
-
-            void create_resources() override;
-            void discard_resources() override;
 
         protected:
 
@@ -84,10 +129,9 @@ namespace DirectWidget {
             DWRITE_TEXT_ALIGNMENT m_alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
             DWRITE_PARAGRAPH_ALIGNMENT m_vertical_alignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
 
-            com_ptr<IDWriteTextFormat> m_text_format = NULL;
-            com_ptr<IDWriteTextLayout> m_text_layout = NULL;
-
-            com_ptr<ID2D1SolidColorBrush> m_brush = NULL;
+            com_resource_ptr<ID2D1Brush> m_text_fill;
+            com_resource_ptr<IDWriteTextFormat> m_text_format;
+            com_resource_ptr<IDWriteTextLayout> m_text_layout;
         };
 
     }

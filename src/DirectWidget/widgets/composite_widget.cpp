@@ -1,5 +1,7 @@
 // composite_widget.cpp: Composite widget implementation
 
+#include <memory>
+
 #include <Windows.h>
 
 #include "../core/foundation.hpp"
@@ -10,7 +12,7 @@
 using namespace DirectWidget;
 using namespace Widgets;
 
-collection_property_ptr<std::shared_ptr<WidgetBase>> CompositeWidget::ChildrenProperty = make_collection<std::shared_ptr<WidgetBase>>(nullptr);
+collection_property_ptr<std::shared_ptr<WidgetBase>> CompositeWidget::ChildrenProperty = make_collection<std::shared_ptr<WidgetBase>>();
 
 SIZE_F CompositeWidget::measure(const SIZE_F& available_size) const
 {

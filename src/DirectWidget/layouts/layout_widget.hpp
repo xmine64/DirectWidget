@@ -54,6 +54,8 @@ namespace DirectWidget {
         protected:
 
             LayoutWidgetBase() {
+                LayoutWidgetChildrenListener::register_listener();
+
                 register_collection(ChildrenProperty, m_children);
             }
 
@@ -63,10 +65,17 @@ namespace DirectWidget {
 
         private:
 
-            static void on_children_changed(PropertyOwnerBase* sender, ObservableCollectionProperty<std::shared_ptr<WidgetBase>>* property, const std::shared_ptr<WidgetBase>& value, bool added);
-
             std::vector<std::shared_ptr<WidgetBase>> m_children;
 
+            class LayoutWidgetChildrenListener : public CollectionListener<std::shared_ptr<WidgetBase>> {
+
+            public:
+
+                static void register_listener();
+
+                void on_collection_changed(sender_ptr sender, property_token property, const std::shared_ptr<WidgetBase>& widget, bool add_or_remove);
+
+            };
         };
 
     }

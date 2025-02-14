@@ -12,6 +12,14 @@
 
 using namespace DirectWidget;
 
+property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
+property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
+property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
+property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
+
+property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
+property_base_ptr WidgetBase::LayoutProperty = std::make_shared<PropertyBase>();
+
 void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const
 {
     // Measure space required by the widget
@@ -108,6 +116,8 @@ void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
     }
 
     on_layout_finalized(render_bounds);
+
+    LayoutProperty->notify_change(this);
 }
 
 void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
@@ -156,6 +166,8 @@ void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_t
     for_each_child([render_target](WidgetBase* widget) {
         widget->attach_render_target(render_target);
         });
+
+    RenderTargetProperty->notify_change(this);
 }
 
 void WidgetBase::detach_render_target()
@@ -165,6 +177,8 @@ void WidgetBase::detach_render_target()
     for_each_child([](WidgetBase* widget) {
         widget->detach_render_target();
         });
+
+    RenderTargetProperty->notify_change(this);
 }
 
 void WidgetBase::render() const
@@ -205,8 +219,3 @@ bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
 
     return result;
 }
-
-property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
-property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
-property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
-property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);

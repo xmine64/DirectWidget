@@ -7,6 +7,7 @@
 
 #include "../core/foundation.hpp"
 #include "../core/property.hpp"
+#include "../core/resource.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -29,11 +30,23 @@ namespace DirectWidget {
             BoxWidget() {
                 register_property(BackgroundColorProperty, m_background_color);
                 register_property(StrokeColorProperty, m_stroke_color);
+
+                m_background_brush = make_resource<ID2D1Brush>([this]() {
+                    com_ptr<ID2D1SolidColorBrush> m_brush;
+                    render_target()->CreateSolidColorBrush(m_background_color, &m_brush); // TODO: error handling
+                    return m_brush;
+                    });
+                m_background_brush->bind(RenderTargetProperty);
+                m_background_brush->bind(BackgroundColorProperty);
+
+                m_stroke_brush = make_resource<ID2D1Brush>([this]() {
+                    com_ptr<ID2D1SolidColorBrush> m_brush;
+                    render_target()->CreateSolidColorBrush(m_stroke_color, &m_brush); // TODO: error handling
+                    return m_brush;
+                    });
+                m_stroke_brush->bind(RenderTargetProperty);
+                m_stroke_brush->bind(StrokeColorProperty);
             }
-
-            // render
-
-            void create_resources() override;
 
         protected:
 
@@ -44,8 +57,8 @@ namespace DirectWidget {
             D2D1::ColorF m_background_color{D2D1::ColorF::White};
             D2D1::ColorF m_stroke_color{D2D1::ColorF::Black};
 
-            com_ptr<ID2D1Brush> m_background_brush{};
-            com_ptr<ID2D1Brush> m_stroke_brush{};
+            com_resource_ptr<ID2D1Brush> m_background_brush;
+            com_resource_ptr<ID2D1Brush> m_stroke_brush;
         };
 
     }
