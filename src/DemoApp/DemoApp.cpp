@@ -11,6 +11,7 @@
 #include "../DirectWidget/core/foundation.hpp"
 #include "../DirectWidget/core/app.hpp"
 #include "../DirectWidget/core/window.hpp"
+#include "../DirectWidget/core/widget.hpp"
 #include "../DirectWidget/widgets/button_widget.hpp"
 #include "../DirectWidget/widgets/text_widget.hpp"
 #include "../DirectWidget/layouts/stack_layout.hpp"
@@ -25,7 +26,7 @@ class MainWindow : public Window
 public:
     MainWindow() {
 
-        auto row = make_unique<StackLayout>();
+        auto row = make_shared<StackLayout>();
         row->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         row->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
         row->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
@@ -64,9 +65,26 @@ public:
         end_align->set_horizontal_alignment(WIDGET_ALIGNMENT_END);
         row->add_child(end_align);
 
+        auto stretched = make_shared<TextWidget>();
+        stretched->set_text(L"Stretched widget with center text alignment");
+        stretched->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
+        stretched->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
+        stretched->set_text_alignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+        row->add_child(stretched);
+
         auto buttons_column = make_shared<StackLayout>();
         buttons_column->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         buttons_column->set_orientation(STACK_LAYOUT_HORIZONTAL);
+
+        auto update_button = make_shared<ButtonWidget>();
+        update_button->set_text(L"set stretched text alignment to trailing");
+        update_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
+        update_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
+        update_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
+        update_button->set_click_handler([this, stretched]() {
+            stretched->set_text_alignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+            });
+        buttons_column->add_child(update_button);
 
         auto increment_button = make_shared<ButtonWidget>();
         increment_button->set_text(L"Increment");
@@ -78,7 +96,6 @@ public:
             m_counter_text.append(L"Counter: ");
             m_counter_text.append(to_wstring(++m_counter));
             m_counter_widget->set_text(m_counter_text.c_str());
-            InvalidateRect(window_handle(), NULL, FALSE);
             });
         buttons_column->add_child(increment_button);
 
@@ -94,7 +111,7 @@ public:
 
         row->add_child(buttons_column);
 
-        set_root_widget(move(row));
+        set_root_widget(row);
     }
 
     PCWSTR title() const override { return L"Demo App"; }

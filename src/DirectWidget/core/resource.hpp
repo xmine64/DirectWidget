@@ -20,7 +20,9 @@ namespace DirectWidget {
 
     public:
 
-        virtual void on_resource_invalidated(sender_ptr sender, ResourceBase* resource) = 0;
+        virtual void on_resource_initialized(ResourceBase* resource) {}
+
+        virtual void on_resource_invalidated(ResourceBase* resource) {}
 
     };
     using resource_listener_ptr = std::shared_ptr<ResourceListenerBase>;
@@ -38,27 +40,31 @@ namespace DirectWidget {
             m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
         }
 
-        void notify_change(PropertyOwnerBase* sender) {
-            for (auto& listener : m_listeners) {
-                listener->on_resource_invalidated(sender, this);
-            }
-        }
-
-
         void bind(resource_base_ptr resource);
         void bind(property_base_ptr property);
 
-        void initialize() { on_initialize(); m_valid = true; }
+        void initialize() { on_initialize(); m_valid = true; notify_change(); }
 
-        void invalidate() { m_valid = false;  }
-
-    protected:
+        void invalidate() { m_valid = false; notify_change(); }
 
         bool is_valid() const { return m_valid; }
+
+    protected:
 
         virtual void on_initialize() = 0;
 
     private:
+
+        void notify_change() {
+            for (auto& listener : m_listeners) {
+                if (m_valid) {
+                    listener->on_resource_initialized(this);
+                }
+                else {
+                    listener->on_resource_invalidated(this);
+                }
+            }
+        }
 
         bool m_valid = false;
 
@@ -100,10 +106,9 @@ namespace DirectWidget {
 
             const resource_base_ptr& dependency() const { return m_dependency; }
 
-            void on_resource_invalidated(sender_ptr sender, ResourceBase* resource) override {
+            void on_resource_invalidated(ResourceBase* resource) override {
                 m_self->invalidate();
             }
-
 
         private:
 

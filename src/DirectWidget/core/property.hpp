@@ -10,6 +10,8 @@
 
 namespace DirectWidget {
 
+    // Type forwards
+
     class PropertyOwnerBase;
     using property_owner_ptr = std::shared_ptr<PropertyOwnerBase>;
     using sender_ptr = PropertyOwnerBase*;
@@ -28,18 +30,7 @@ namespace DirectWidget {
     template <typename T>
     using collection_property_ptr = std::shared_ptr<ObservableCollectionProperty<T>>;
 
-    class PropertyListenerBase;
-    using property_listener_ptr = std::shared_ptr<PropertyListenerBase>;
-
-    template <typename T>
-    class PropertyValueListener;
-    template <typename T>
-    using property_value_listener_ptr = std::shared_ptr<PropertyValueListener<T>>;
-
-    template <typename T>
-    class CollectionListener;
-    template <typename T>
-    using collection_listener_ptr = std::shared_ptr<CollectionListener<T>>;
+    // Listeners
 
     class PropertyListenerBase {
 
@@ -49,6 +40,8 @@ namespace DirectWidget {
         virtual void on_property_changed(sender_ptr sender, property_token property) = 0;
 
     };
+
+    using property_listener_ptr = std::shared_ptr<PropertyListenerBase>;
 
     template <typename T>
     class PropertyValueListener : public PropertyListenerBase {
@@ -62,6 +55,9 @@ namespace DirectWidget {
     };
 
     template <typename T>
+    using property_value_listener_ptr = std::shared_ptr<PropertyValueListener<T>>;
+
+    template <typename T>
     class CollectionListener : public PropertyListenerBase {
 
     public:
@@ -70,6 +66,23 @@ namespace DirectWidget {
 
         virtual void on_collection_changed(sender_ptr sender, property_token property, const T& value, bool add_or_remove) = 0;
     };
+
+    template <typename T>
+    using collection_listener_ptr = std::shared_ptr<CollectionListener<T>>;
+
+
+    class PropertyOwnerChangeListenerBase {
+
+    public:
+        virtual ~PropertyOwnerChangeListenerBase() = default;
+
+        virtual void on_property_changed(sender_ptr sender, property_base_ptr property) = 0;
+
+    };
+
+    using owner_listener_ptr = std::shared_ptr<PropertyOwnerChangeListenerBase>;
+
+    // Properties
 
     class PropertyBase {
 
@@ -84,6 +97,8 @@ namespace DirectWidget {
             m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
         }
 
+    protected:
+
         void notify_change(PropertyOwnerBase* sender) {
             for (auto& listener : m_listeners) {
                 listener->on_property_changed(sender, this);
@@ -94,6 +109,7 @@ namespace DirectWidget {
 
         std::vector<property_listener_ptr> m_listeners;
 
+        friend PropertyOwnerBase;
     };
 
     template <typename T>
@@ -115,6 +131,8 @@ namespace DirectWidget {
             m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
         }
 
+    protected:
+
         void notify_change(PropertyOwnerBase* sender, const T& old_value, const T& new_value) {
             for (auto& listener : m_listeners) {
                 listener->on_property_changed(sender, this, old_value, new_value);
@@ -129,6 +147,8 @@ namespace DirectWidget {
         const T m_default_value;
 
         std::vector<property_value_listener_ptr<T>> m_listeners;
+
+        friend PropertyOwnerBase;
     };
 
     template <typename P>
@@ -149,6 +169,8 @@ namespace DirectWidget {
             m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
         }
 
+    protected:
+
         void notify_change(PropertyOwnerBase* sender, const T& value, bool add_or_remove) {
             for (auto& listener : m_listeners) {
                 listener->on_collection_changed(sender, this, value, add_or_remove);
@@ -160,12 +182,16 @@ namespace DirectWidget {
     private:
 
         std::vector<collection_listener_ptr<T>> m_listeners;
+
+        friend PropertyOwnerBase;
     };
 
     template <typename C>
     collection_property_ptr<C> make_collection() {
         return std::make_shared<ObservableCollectionProperty<C>>();
     }
+
+    // Property owner
 
     class PropertyOwnerBase {
 
@@ -174,6 +200,22 @@ namespace DirectWidget {
         virtual ~PropertyOwnerBase() = default;
 
     protected:
+
+        void add_listener(const owner_listener_ptr& listener) {
+            m_listeners.push_back(listener);
+        }
+
+        void remove_listener(const owner_listener_ptr& listener) {
+            m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener));
+        }
+
+        void notify_change(property_base_ptr property) {
+            for (const auto& listener : m_listeners) {
+                listener->on_property_changed(this, property);
+            }
+
+            property->notify_change(this);
+        }
 
         template<typename P>
         void register_property(property_ptr<P> property, P& field) {
@@ -187,7 +229,9 @@ namespace DirectWidget {
                 if (prop.get() == property.get()) {
                     auto old_value = *static_cast<P*>(ptr);
                     *static_cast<P*>(ptr) = value;
+
                     property->notify_change(this, old_value, value);
+                    notify_change(property);
                     return;
                 }
             }
@@ -214,7 +258,9 @@ namespace DirectWidget {
                 if (prop == property) {
                     auto& collection = *static_cast<std::vector<C>*>(ptr);
                     collection.push_back(value);
+
                     property->notify_change(this, value, true);
+                    notify_change(property);
                     return;
                 }
             }
@@ -226,7 +272,9 @@ namespace DirectWidget {
                 if (prop == property) {
                     auto& collection = *static_cast<std::vector<C>*>(ptr);
                     collection.erase(std::remove(collection.begin(), collection.end(), value), collection.end());
+
                     property->notify_change(this, value, false);
+                    notify_change(property);
                     return;
                 }
             }
@@ -246,5 +294,8 @@ namespace DirectWidget {
 
         std::unordered_map<std::shared_ptr<PropertyBase>, void*> m_properties;
 
+        std::vector<owner_listener_ptr> m_listeners;
+
     };
+
 }

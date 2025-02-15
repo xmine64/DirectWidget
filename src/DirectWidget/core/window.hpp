@@ -9,6 +9,7 @@
 #include <d2d1.h>
 
 #include "foundation.hpp"
+#include "property.hpp"
 #include "widget.hpp"
 
 namespace DirectWidget {
@@ -30,7 +31,7 @@ namespace DirectWidget {
         HWND window_handle() const { return m_handle; }
         float dpi() const { return m_dpi; }
 
-        void set_root_widget(std::unique_ptr<WidgetBase> widget);
+        void set_root_widget(const std::shared_ptr<WidgetBase>& widget);
 
     protected:
 
@@ -54,7 +55,7 @@ namespace DirectWidget {
         void discard_device_resources();
 
         com_ptr<ID2D1HwndRenderTarget> m_render_target = nullptr;
-        std::unique_ptr<WidgetBase> m_root_widget = nullptr;
+        std::shared_ptr<WidgetBase> m_root_widget = nullptr;
     };
 
 }

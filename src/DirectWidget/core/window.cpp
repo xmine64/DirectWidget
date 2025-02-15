@@ -1,7 +1,6 @@
 // window.cpp: Window implementation
 
 #include <memory>
-#include <type_traits>
 
 #include <Windows.h>
 #include <windowsx.h>
@@ -120,9 +119,9 @@ LRESULT Window::handle_message(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(this->m_handle, uMsg, wParam, lParam);
 }
 
-void Window::set_root_widget(std::unique_ptr<WidgetBase> widget)
+void Window::set_root_widget(const std::shared_ptr<WidgetBase>& widget)
 {
-    m_root_widget = std::move(widget);
+    m_root_widget = widget;
     m_root_widget->update_dpi(m_dpi);
 
     if (m_render_target != NULL)

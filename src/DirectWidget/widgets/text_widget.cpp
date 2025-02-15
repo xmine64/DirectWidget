@@ -10,7 +10,6 @@
 
 #include "../core/foundation.hpp"
 #include "../core/property.hpp"
-#include "../core/app.hpp"
 #include "../core/widget.hpp"
 #include "text_widget.hpp"
 
@@ -43,15 +42,6 @@ SIZE_F DirectWidget::Widgets::TextWidget::measure(const SIZE_F& available_size) 
     return { text_metrics.width, text_metrics.height };
 }
 
-void DirectWidget::Widgets::TextWidget::on_layout_finalized(const BOUNDS_F& render_bounds)
-{
-    if (m_text_layout == nullptr)
-        return;
-
-    m_text_layout->get()->SetMaxWidth(render_bounds.right - render_bounds.left);
-    m_text_layout->get()->SetMaxHeight(render_bounds.bottom - render_bounds.top);
-}
-
 void TextWidget::on_render() const
 {
     if (m_text_layout == nullptr)
@@ -62,4 +52,20 @@ void TextWidget::on_render() const
         m_text_layout->get(),
         m_text_fill->get(),
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+}
+
+void TextWidget::TextLayoutUpdater::on_property_changed(sender_ptr sender, property_base_ptr property)
+{
+    auto text_widget = static_cast<TextWidget*>(sender);
+    
+    if (!text_widget->m_text_layout->is_valid()) {
+        return;
+    }
+
+    if (property == RenderBoundsProperty) {
+
+        text_widget->m_text_layout->get()->SetMaxWidth(text_widget->render_bounds().right - text_widget->render_bounds().left);
+        text_widget->m_text_layout->get()->SetMaxHeight(text_widget->render_bounds().bottom - text_widget->render_bounds().top);
+
+    }
 }

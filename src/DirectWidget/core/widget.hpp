@@ -47,10 +47,6 @@ namespace DirectWidget {
         static property_ptr<WIDGET_ALIGNMENT> VerticalAlignmentProperty;
         static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
 
-        // Not an actual property, but can be used as dependency for resources
-        static property_base_ptr RenderTargetProperty;
-        static property_base_ptr LayoutProperty;
-
         SIZE_F size() const { return get_property<SIZE_F>(SizeProperty); }
         void set_size(const SIZE_F& size) { set_property<SIZE_F>(SizeProperty, size); }
 
@@ -62,6 +58,18 @@ namespace DirectWidget {
 
         WIDGET_ALIGNMENT horizontal_alignment() const { return get_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty); }
         void set_horizontal_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty, alignment); }
+
+        // notification properties
+
+        /// <summary>
+        /// RenderTargetProperty is a notification property that is used to notify the widget that the render target has changed.
+        /// </summary>
+        static property_base_ptr RenderTargetProperty;
+
+        /// <summary>
+        /// RenderBoundsProperty is a notification property that is used to notify when the widget render bounds has changed.
+        /// </summary>
+        static property_base_ptr RenderBoundsProperty;
 
         // layout
 
@@ -114,8 +122,6 @@ namespace DirectWidget {
 
         virtual void for_each_child(std::function<void(WidgetBase*)> callback) const {}
         
-        virtual void on_layout_finalized(const BOUNDS_F& render_bounds) {}
-
         virtual void on_render() const {}
 
     private:

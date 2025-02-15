@@ -88,9 +88,9 @@ namespace DirectWidget {
                 m_text_format->bind(FontFamilyProperty);
                 m_text_format->bind(FontWeightProperty);
                 m_text_format->bind(FontSizeProperty);
+                m_text_format->bind(TextAlignmentProperty);
+                m_text_format->bind(ParagraphAlignmentProperty);
 
-                // TODO: add listener to update TextAlignment and ParagraphAlignment
-                
                 m_text_layout = make_resource<IDWriteTextLayout>([this]() {
                     com_ptr<IDWriteTextLayout> text_layout;
                     auto& dwrite = Application::instance()->dwrite();
@@ -105,16 +105,12 @@ namespace DirectWidget {
                     });
                 m_text_layout->bind(TextProperty);
                 m_text_layout->bind(m_text_format);
-                //m_text_layout->bind(LayoutProperty);
-
-                // TODO: add listener to update MaxWidth and MaxHeight
+                add_listener(std::make_shared<TextLayoutUpdater>());
             }
 
             // layout
 
             SIZE_F measure(const SIZE_F& available_size) const override;
-
-            void on_layout_finalized(const BOUNDS_F& render_bounds) override;
 
         protected:
 
@@ -132,6 +128,14 @@ namespace DirectWidget {
             com_resource_ptr<ID2D1Brush> m_text_fill;
             com_resource_ptr<IDWriteTextFormat> m_text_format;
             com_resource_ptr<IDWriteTextLayout> m_text_layout;
+
+            class TextLayoutUpdater : public PropertyOwnerChangeListenerBase {
+
+            public:
+
+                void on_property_changed(sender_ptr sender, property_base_ptr property) override;
+
+            };
         };
 
     }

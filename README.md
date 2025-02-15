@@ -23,6 +23,10 @@ A simple UI framework based on Direct2D for Windows.
 * [x] Text rendering
 * [x] Click callback
 * [x] Layout and widget alignment
-* [ ] Mutable widget properties
+* [x] Mutable widget properties
+* [ ] Render invalidation on property change
+* [ ] Layout invalidation on property change
+* [ ] Dependency property
 * [ ] Text field
 * [ ] Checkbox
+* [ ] Scroll viewer

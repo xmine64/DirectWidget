@@ -18,7 +18,7 @@ property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_prop
 property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
 
 property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
-property_base_ptr WidgetBase::LayoutProperty = std::make_shared<PropertyBase>();
+property_base_ptr WidgetBase::RenderBoundsProperty = std::make_shared<PropertyBase>();
 
 void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const
 {
@@ -115,9 +115,7 @@ void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
         OutputDebugString(err.ErrorMessage());
     }
 
-    on_layout_finalized(render_bounds);
-
-    LayoutProperty->notify_change(this);
+    notify_change(RenderBoundsProperty);
 }
 
 void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
@@ -167,7 +165,7 @@ void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_t
         widget->attach_render_target(render_target);
         });
 
-    RenderTargetProperty->notify_change(this);
+    notify_change(RenderTargetProperty);
 }
 
 void WidgetBase::detach_render_target()
@@ -178,7 +176,7 @@ void WidgetBase::detach_render_target()
         widget->detach_render_target();
         });
 
-    RenderTargetProperty->notify_change(this);
+    notify_change(RenderTargetProperty);
 }
 
 void WidgetBase::render() const
