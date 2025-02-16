@@ -27,32 +27,15 @@ namespace DirectWidget {
             D2D1::ColorF stroke_color() const { return get_property(StrokeColorProperty); }
             void set_stroke_color(const D2D1::ColorF& color) { set_property(StrokeColorProperty, color); }
 
-            BoxWidget() {
-                register_property(BackgroundColorProperty, m_background_color);
-                register_property(StrokeColorProperty, m_stroke_color);
-
-                m_background_brush = make_resource<ID2D1Brush>([this]() {
-                    com_ptr<ID2D1SolidColorBrush> m_brush;
-                    render_target()->CreateSolidColorBrush(m_background_color, &m_brush); // TODO: error handling
-                    return m_brush;
-                    });
-                m_background_brush->bind(RenderTargetProperty);
-                m_background_brush->bind(BackgroundColorProperty);
-
-                m_stroke_brush = make_resource<ID2D1Brush>([this]() {
-                    com_ptr<ID2D1SolidColorBrush> m_brush;
-                    render_target()->CreateSolidColorBrush(m_stroke_color, &m_brush); // TODO: error handling
-                    return m_brush;
-                    });
-                m_stroke_brush->bind(RenderTargetProperty);
-                m_stroke_brush->bind(StrokeColorProperty);
-            }
+            BoxWidget();
 
         protected:
 
             void on_render() const override;
 
         private:
+
+            static const LogContext m_log;
 
             D2D1::ColorF m_background_color{D2D1::ColorF::White};
             D2D1::ColorF m_stroke_color{D2D1::ColorF::Black};

@@ -1,7 +1,7 @@
 // app.cpp: Application implementation
 
 #include <Windows.h>
-#include <objbase.h>
+#include <comdef.h>
 #include <d2d1.h>
 #include <dwrite.h>
 
@@ -47,4 +47,3 @@ int Application::run_message_loop(Window& main_window, int nCmdShow)
 
     return static_cast<int>(msg.wParam);
 }
-

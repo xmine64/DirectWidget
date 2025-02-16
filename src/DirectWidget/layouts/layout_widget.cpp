@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include "../core/widget.hpp"
+#include "../core/property.hpp"
 #include "layout_widget.hpp"
 
 using namespace DirectWidget;

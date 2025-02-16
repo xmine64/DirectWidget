@@ -39,7 +39,7 @@ namespace DirectWidget {
     class WidgetBase : public PropertyOwnerBase
     {
     public:
-        
+
         // properties
 
         static property_ptr<SIZE_F> SizeProperty;
@@ -121,14 +121,16 @@ namespace DirectWidget {
         }
 
         virtual void for_each_child(std::function<void(WidgetBase*)> callback) const {}
-        
+
         virtual void on_render() const {}
 
     private:
+        static const LogContext m_log;
+
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
 
         float m_dpi = 1.0f;
-        
+
         LAYOUT_STATE m_layout{};
 
         SIZE_F m_size;

@@ -52,61 +52,7 @@ namespace DirectWidget {
             DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment() const { return get_property(ParagraphAlignmentProperty); }
             void set_paragraph_alignment(DWRITE_PARAGRAPH_ALIGNMENT alignment) { set_property(ParagraphAlignmentProperty, alignment); }
 
-            TextWidget() {
-                register_property(TextProperty, m_text);
-                register_property(FontFamilyProperty, m_font_family);
-                register_property(FontSizeProperty, m_size);
-                register_property(ColorProperty, m_color);
-                register_property(FontWeightProperty, m_weight);
-                register_property(TextAlignmentProperty, m_alignment);
-                register_property(ParagraphAlignmentProperty, m_vertical_alignment);
-
-                m_text_fill = make_resource<ID2D1Brush>([this]() {
-                    com_ptr<ID2D1SolidColorBrush> brush;
-                    render_target()->CreateSolidColorBrush(m_color, &brush); // TODO: error handling
-                    return brush;
-                    });
-                m_text_fill->bind(RenderTargetProperty);
-                m_text_fill->bind(ColorProperty);
-
-                m_text_format = make_resource<IDWriteTextFormat>([this]() {
-                    com_ptr<IDWriteTextFormat> text_format;
-                    auto& dwrite = Application::instance()->dwrite();
-                    dwrite->CreateTextFormat(
-                        m_font_family,
-                        NULL,
-                        m_weight,
-                        DWRITE_FONT_STYLE_NORMAL,
-                        DWRITE_FONT_STRETCH_NORMAL,
-                        m_size,
-                        L"en-us",
-                        &text_format); // TODO: error handling
-                    text_format->SetTextAlignment(m_alignment);
-                    text_format->SetParagraphAlignment(m_vertical_alignment);
-                    return text_format;
-                    });
-                m_text_format->bind(FontFamilyProperty);
-                m_text_format->bind(FontWeightProperty);
-                m_text_format->bind(FontSizeProperty);
-                m_text_format->bind(TextAlignmentProperty);
-                m_text_format->bind(ParagraphAlignmentProperty);
-
-                m_text_layout = make_resource<IDWriteTextLayout>([this]() {
-                    com_ptr<IDWriteTextLayout> text_layout;
-                    auto& dwrite = Application::instance()->dwrite();
-                    dwrite->CreateTextLayout(
-                        m_text,
-                        static_cast<UINT32>(wcslen(m_text)),
-                        m_text_format->get(),
-                        render_bounds().right - render_bounds().left,
-                        render_bounds().bottom - render_bounds().top,
-                        &text_layout); // TODO: error handling
-                    return text_layout;
-                    });
-                m_text_layout->bind(TextProperty);
-                m_text_layout->bind(m_text_format);
-                add_listener(std::make_shared<TextLayoutUpdater>());
-            }
+            TextWidget();
 
             // layout
 
@@ -117,6 +63,9 @@ namespace DirectWidget {
             void on_render() const override;
 
         private:
+
+            static const LogContext Logger;
+
             PCWSTR m_text{};
             PCWSTR m_font_family = L"Segoe UI";
             float m_size = 12.0;

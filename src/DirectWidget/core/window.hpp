@@ -9,7 +9,6 @@
 #include <d2d1.h>
 
 #include "foundation.hpp"
-#include "property.hpp"
 #include "widget.hpp"
 
 namespace DirectWidget {
@@ -48,6 +47,9 @@ namespace DirectWidget {
         virtual LRESULT handle_message(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     private:
+
+        static const LogContext m_log;
+
         HWND m_handle = NULL;
         float m_dpi = 1.0f;
 

@@ -12,6 +12,8 @@
 
 using namespace DirectWidget;
 
+const LogContext WidgetBase::m_log{ NAMEOF(WidgetBase) };
+
 property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
 property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
 property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
@@ -108,12 +110,7 @@ void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
 
     auto& d2d = DirectWidget::Application::instance()->d2d();
     auto hr = d2d->CreateRectangleGeometry(D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom), reinterpret_cast<ID2D1RectangleGeometry**>(&m_layout.geometry));
-
-    if (FAILED(hr)) {
-        _com_error err{ hr };
-        OutputDebugString(L"finalize_layout: CreateRectangleGeometry failed.");
-        OutputDebugString(err.ErrorMessage());
-    }
+    m_log.at(NAMEOF(finalize_layout)).at(NAMEOF(d2d->CreateRectangleGeometry)).fatal_exit(hr);
 
     notify_change(RenderBoundsProperty);
 }
@@ -125,19 +122,11 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
 
     com_ptr<ID2D1SolidColorBrush> bounds_brush;
     auto hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Red), &bounds_brush);
-    if (FAILED(hr)) {
-        _com_error err{ hr };
-        OutputDebugString(L"render_debug_layout: CreateSolidColorBrush failed.");
-        OutputDebugString(err.ErrorMessage());
-    }
+    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
     com_ptr<ID2D1SolidColorBrush> layout_brush;
     hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &layout_brush);
-    if (FAILED(hr)) {
-        _com_error err{ hr };
-        OutputDebugString(L"render_debug_layout: CreateSolidColorBrush failed.");
-        OutputDebugString(err.ErrorMessage());
-    }
+    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
     auto render_bounds = D2D1::RectF(
         m_layout.render_bounds.left,
@@ -156,6 +145,9 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
     for_each_child([render_target](WidgetBase* widget) {
         widget->render_debug_layout(render_target);
         });
+
+    hr = render_target->Flush();
+    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->Flush)).log_error(hr);
 }
 
 void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target)
@@ -195,12 +187,7 @@ void WidgetBase::render() const
     render_target()->PopAxisAlignedClip();
 
     auto hr = render_target()->Flush();
-    if (FAILED(hr)) {
-        _com_error err{ hr };
-
-        OutputDebugString(L"render_target()->Flush() failed.");
-        OutputDebugString(err.ErrorMessage());
-    }
+    m_log.at(NAMEOF(render)).at(NAMEOF(render_target()->Flush)).log_error(hr);
 }
 
 bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
@@ -209,11 +196,7 @@ bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
 
     BOOL result = false;
     auto hr = m_layout.geometry->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
-    if (FAILED(hr)) {
-        _com_error err{ hr };
-        OutputDebugString(L"FillContainsPoint failed.");
-        OutputDebugString(err.ErrorMessage());
-    }
+    m_log.at(NAMEOF(hit_test)).at(NAMEOF(m_layout.geometry->FillContainsPoint)).log_error(hr);
 
     return result;
 }

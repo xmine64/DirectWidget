@@ -134,6 +134,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+    LogContext log{ L"wWinMain" };
+
     auto& app = DirectWidget::Application::instance();
     
 #ifdef _DEBUG
@@ -141,11 +143,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #endif // DEBUG
 
     auto hr = app->initialize();
-    if (FAILED(hr)) {
-        _com_error err(hr);
-        FatalAppExit(0, err.ErrorMessage());
-        return 1;
-    }
+    log.at(L"Application::initialize").fatal_exit(hr);
 
     MainWindow mainWindow;
     return app->run_message_loop(mainWindow, nCmdShow);

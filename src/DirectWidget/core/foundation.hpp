@@ -2,12 +2,43 @@
 
 #pragma once
 
+#include <string>
+#include <format>
+
+#include <Windows.h>
 #include <comdef.h>
 
 template <typename Interface>
 using com_ptr = _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>>;
 
+#define NAMEOF(x) L#x
+
 namespace DirectWidget {
+
+    class LogContext {
+
+    public:
+
+        LogContext(const std::wstring& context) : m_prefix(std::format(L"{}: ", context)) {}
+        LogContext(PCWSTR context) : m_prefix(std::format(L"{}: ", context)) {}
+
+        LogContext at(PCWSTR context) const { return LogContext(std::format(L"{} {}: ", m_prefix, context)); }
+
+        void log(PCWSTR message) const;
+
+        void log_error(PCWSTR message) const;
+
+        void log_error(HRESULT hr) const;
+
+        void fatal_exit(PCWSTR message) const;
+
+        void fatal_exit(HRESULT hr) const;
+
+    private:
+
+        std::wstring m_prefix;
+
+    };
 
     typedef struct {
         float x, y;

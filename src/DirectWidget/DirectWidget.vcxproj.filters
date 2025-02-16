@@ -51,6 +51,9 @@
     <ClCompile Include="core\resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="core\foundation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\widget.hpp">

@@ -168,6 +168,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="core\app.cpp" />
+    <ClCompile Include="core\foundation.cpp" />
     <ClCompile Include="core\resource.cpp" />
     <ClCompile Include="layouts\layout_widget.cpp" />
     <ClCompile Include="core\widget.cpp" />

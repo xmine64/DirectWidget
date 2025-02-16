@@ -15,6 +15,8 @@
 
 using namespace DirectWidget;
 
+const LogContext Window::m_log{ NAMEOF(Window) };
+
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     Window* window;
     if (uMsg == WM_NCCREATE) {
@@ -191,7 +193,7 @@ bool Window::on_paint()
         }
         else
         {
-            FatalAppExit(0, _com_error(hr).ErrorMessage());
+            m_log.at(NAMEOF(on_paint)).fatal_exit(hr);
             return false;
         }
     }
@@ -239,10 +241,7 @@ bool Window::create_device_resources()
         D2D1::HwndRenderTargetProperties(window_handle(), size),
         &m_render_target);
     if (FAILED(hr)) {
-        _com_error err{ hr };
-
-        OutputDebugString(L"CreateHwndRenderTarget failed.");
-        OutputDebugString(err.ErrorMessage());
+        m_log.at(NAMEOF(create_device_resources)).at(NAMEOF(factory->CreateHwndRenderTarget)).fatal_exit(hr);
         return false;
     }
 
