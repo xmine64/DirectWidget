@@ -109,7 +109,7 @@ SIZE_F TextWidget::measure(const SIZE_F& available_size) const
         return { 0, 0 };
     }
 
-    return { text_metrics.width, text_metrics.height };
+    return { text_metrics.widthIncludingTrailingWhitespace + 1.0f, text_metrics.height + 1.0f };
 }
 
 void TextWidget::render(const RenderContext& context) const
