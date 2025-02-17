@@ -37,7 +37,7 @@ public:
         row->set_orientation(STACK_LAYOUT_VERTICAL);
         
         auto title = make_shared<TextWidget>();
-        title->set_text(L"Demo App");
+        title->set_text(L"Demo App 🔥");
         title->set_margin(BOUNDS_F{ 8.0f, 8.0f, 8.0f, 8.0f });
         title->set_font_size(24.0f);
         title->set_horizontal_alignment(WIDGET_ALIGNMENT_START);

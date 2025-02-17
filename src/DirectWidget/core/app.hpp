@@ -44,12 +44,8 @@ namespace DirectWidget {
         const com_ptr<ID2D1Factory>& d2d() const { return m_d2d; }
         const com_ptr<IDWriteFactory>& dwrite() const { return m_dwrite; }
 
-#ifdef _DEBUG
-
         void enable_debug() { m_is_debug = true; }
         bool is_debug() const { return m_is_debug; }
-
-#endif // DEBUG
 
     private:
 
@@ -58,9 +54,7 @@ namespace DirectWidget {
         com_ptr<ID2D1Factory> m_d2d = nullptr;
         com_ptr<IDWriteFactory> m_dwrite = nullptr;
 
-#ifdef _DEBUG
         bool m_is_debug = false;
-#endif // DEBUG
 
     };
 
