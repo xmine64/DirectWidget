@@ -19,10 +19,10 @@ namespace DirectWidget {
 
     public:
 
-        LogContext(const std::wstring& context) : m_prefix(std::format(L"{}: ", context)) {}
-        LogContext(PCWSTR context) : m_prefix(std::format(L"{}: ", context)) {}
+        LogContext(const std::wstring& context) : m_prefix(context) {}
+        LogContext(PCWSTR context) : m_prefix(context) {}
 
-        LogContext at(PCWSTR context) const { return LogContext(std::format(L"{} {}: ", m_prefix, context)); }
+        LogContext at(PCWSTR context) const { return LogContext(std::format(L"{}: {}", m_prefix, context)); }
 
         void log(PCWSTR message) const;
 
