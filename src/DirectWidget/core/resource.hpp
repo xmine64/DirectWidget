@@ -42,16 +42,18 @@ namespace DirectWidget {
 
         void bind(resource_base_ptr resource);
         void bind(property_base_ptr property);
+        void unbind(resource_base_ptr resource);
+        void unbind(property_base_ptr property);
 
-        void initialize() { on_initialize(); m_valid = true; notify_change(); }
+        virtual void initialize() = 0;
 
-        void invalidate() { m_valid = false; notify_change(); }
+        void invalidate() { if (m_valid == false) return; m_valid = false; notify_change(); }
 
         bool is_valid() const { return m_valid; }
 
     protected:
 
-        virtual void on_initialize() = 0;
+        void mark_valid() { if (m_valid == true) return; m_valid = true; notify_change(); }
 
     private:
 
@@ -69,14 +71,6 @@ namespace DirectWidget {
         bool m_valid = false;
 
         std::vector<resource_listener_ptr> m_listeners;
-
-        class BindingBase {
-
-        public:
-
-            virtual void unbind(const std::shared_ptr<BindingBase>& self) = 0;
-
-        };
 
         class PropertyBinding : public PropertyListenerBase {
 
@@ -128,8 +122,9 @@ namespace DirectWidget {
 
         Resource(const std::function<T()>& initializer) : m_initializer(initializer) {}
 
-        void on_initialize() override {
+        void initialize() override {
             m_resource = m_initializer();
+            mark_valid();
         }
 
         const T& get() {

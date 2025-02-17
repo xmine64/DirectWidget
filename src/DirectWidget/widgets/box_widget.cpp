@@ -17,10 +17,14 @@ const LogContext BoxWidget::m_log{ NAMEOF(BoxWidget) };
 
 property_ptr<D2D1::ColorF> BoxWidget::BackgroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::White);
 property_ptr<D2D1::ColorF> BoxWidget::StrokeColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
+property_ptr<float> BoxWidget::StrokeWidthProperty = make_property<float>(1.0f);
 
 BoxWidget::BoxWidget() {
     register_property(BackgroundColorProperty, m_background_color);
     register_property(StrokeColorProperty, m_stroke_color);
+    register_property(StrokeWidthProperty, m_stroke_width);
+
+    render_content()->bind(StrokeWidthProperty);
 
     m_background_brush = make_resource<ID2D1Brush>([this]() {
         com_ptr<ID2D1SolidColorBrush> m_brush;
@@ -30,6 +34,7 @@ BoxWidget::BoxWidget() {
         });
     m_background_brush->bind(RenderTargetProperty);
     m_background_brush->bind(BackgroundColorProperty);
+    render_content()->bind(m_background_brush);
 
     m_stroke_brush = make_resource<ID2D1Brush>([this]() {
         com_ptr<ID2D1SolidColorBrush> m_brush;
@@ -39,9 +44,10 @@ BoxWidget::BoxWidget() {
         });
     m_stroke_brush->bind(RenderTargetProperty);
     m_stroke_brush->bind(StrokeColorProperty);
+    render_content()->bind(m_stroke_brush);
 }
 
-void BoxWidget::on_render() const
+void BoxWidget::render(const RenderContext& context) const
 {
     auto box = D2D1::RectF(
         render_bounds().left,
@@ -49,6 +55,9 @@ void BoxWidget::on_render() const
         render_bounds().right,
         render_bounds().bottom
     );
-    render_target()->FillRectangle(box, m_background_brush->get());
-    render_target()->DrawRectangle(box, m_stroke_brush->get());
+    context.render_target()->FillRectangle(box, m_background_brush->get());
+
+    if (m_stroke_width > 0.0f) {
+        context.render_target()->DrawRectangle(box, m_stroke_brush->get(), m_stroke_width);
+    }
 }

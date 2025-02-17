@@ -18,6 +18,7 @@
 
 #include "foundation.hpp"
 #include "property.hpp"
+#include "resource.hpp"
 
 namespace DirectWidget {
 
@@ -29,12 +30,62 @@ namespace DirectWidget {
 
     } LAYOUT_STATE;
 
+    class RenderContext {
+    public:
+        RenderContext(const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
+            : RenderContext(true, render_target, render_bounds) {
+
+        }
+
+        ~RenderContext() {
+            m_render_target->PopAxisAlignedClip();
+            if (m_is_root)
+            {
+                auto hr = m_render_target->EndDraw();
+                Logger.at(NAMEOF(~RenderContext)).at(NAMEOF(ID2D1RenderTarget::EndDraw)).log_error(hr);
+            }
+            else {
+                auto hr = m_render_target->Flush();
+                Logger.at(NAMEOF(~RenderContext)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
+            }
+        }
+
+        RenderContext(RenderContext&) = delete;
+        RenderContext(RenderContext&&) = delete;
+
+        RenderContext render_child(const BOUNDS_F& render_bounds) const {
+            return RenderContext(false, m_render_target, render_bounds);
+        }
+
+        const BOUNDS_F& render_bounds() const { return m_render_bounds; }
+        const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
+
+    private:
+        static const LogContext Logger;
+
+        RenderContext(bool is_root, const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
+            : m_is_root(is_root), m_render_target(render_target), m_render_bounds(render_bounds) {
+            if (is_root) {
+                m_render_target->BeginDraw();
+            }
+            auto bounds_rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
+            render_target->PushAxisAlignedClip(bounds_rect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        }
+
+        bool m_is_root;
+        com_ptr<ID2D1RenderTarget> m_render_target;
+        BOUNDS_F m_render_bounds;
+    };
+
     enum WIDGET_ALIGNMENT {
         WIDGET_ALIGNMENT_START,
         WIDGET_ALIGNMENT_CENTER,
         WIDGET_ALIGNMENT_END,
         WIDGET_ALIGNMENT_STRETCH,
     };
+
+    class WidgetBase;
+    using widget_ptr = std::shared_ptr<WidgetBase>;
 
     class WidgetBase : public PropertyOwnerBase
     {
@@ -84,14 +135,13 @@ namespace DirectWidget {
 
         void attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target);
         void detach_render_target();
-        const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
+        const resource_base_ptr& render_content() const { return m_render_content; }
 
         virtual void create_resources() { for_each_child([](WidgetBase* widget) { widget->create_resources(); }); }
         virtual void discard_resources() { for_each_child([](WidgetBase* widget) { widget->discard_resources(); }); }
 
         BOUNDS_F render_bounds() const { return m_layout.render_bounds; }
-
-        void render() const;
+        const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
 
         // interaction
 
@@ -118,16 +168,20 @@ namespace DirectWidget {
             register_property(MarginProperty, m_margin);
             register_property(VerticalAlignmentProperty, m_vertical_alignment);
             register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
+
+            m_render_content = std::make_shared<RenderContentResource>(this);
+            m_render_content->bind(RenderBoundsProperty);
         }
 
         virtual void for_each_child(std::function<void(WidgetBase*)> callback) const {}
 
-        virtual void on_render() const {}
+        virtual void render(const RenderContext& context) const {}
 
     private:
-        static const LogContext m_log;
+        static const LogContext Logger;
 
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
+        resource_base_ptr m_render_content;
 
         float m_dpi = 1.0f;
 
@@ -137,5 +191,14 @@ namespace DirectWidget {
         BOUNDS_F m_margin;
         WIDGET_ALIGNMENT m_vertical_alignment;
         WIDGET_ALIGNMENT m_horizontal_alignment;
+
+        class RenderContentResource : public ResourceBase {
+        public:
+            RenderContentResource(WidgetBase* widget) : m_widget(widget) {}
+            void initialize() override;
+            void initialize_with_context(const RenderContext& render_context);
+        private:
+            WidgetBase* m_widget;
+        };
     };
 }

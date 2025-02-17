@@ -135,6 +135,7 @@ void Window::set_root_widget(const std::shared_ptr<WidgetBase>& widget)
         BOUNDS_F render_bounds;
         m_root_widget->layout(view_port, layout_bounds, render_bounds);
         m_root_widget->finalize_layout(render_bounds);
+        m_root_widget->render_content()->invalidate();
     }
 }
 
@@ -157,6 +158,7 @@ bool Window::on_size(int width, int height)
         }
 
         InvalidateRect(window_handle(), nullptr, FALSE);
+        m_root_widget->render_content()->invalidate();
     }
     return true;
 }
@@ -167,36 +169,7 @@ bool Window::on_paint()
         return false;
     }
 
-    m_render_target->BeginDraw();
-
-    m_render_target->Clear(D2D1::ColorF(D2D1::ColorF::White));
-
-    if (m_root_widget != nullptr)
-    {
-        m_root_widget->render();
-
-#ifdef _DEBUG
-
-        if (Application::instance()->is_debug())
-            m_root_widget->render_debug_layout(m_render_target);
-
-#endif // DEBUG
-    }
-
-    auto hr = m_render_target->EndDraw();
-    if (FAILED(hr))
-    {
-        if (hr == D2DERR_RECREATE_TARGET)
-        {
-            discard_device_resources();
-            return true;
-        }
-        else
-        {
-            m_log.at(NAMEOF(on_paint)).fatal_exit(hr);
-            return false;
-        }
-    }
+    m_root_widget->render_content()->initialize();
 
     ValidateRect(window_handle(), nullptr);
 
@@ -209,6 +182,7 @@ bool Window::on_dpi_change(float dpi) {
     m_root_widget->update_dpi(dpi);
 
     InvalidateRect(window_handle(), NULL, TRUE);
+    m_root_widget->render_content()->invalidate();
 
     return true;
 }
@@ -266,5 +240,6 @@ void Window::discard_device_resources()
 {
     m_root_widget->discard_resources();
     m_root_widget->detach_render_target();
+    m_root_widget->render_content()->invalidate();
     m_render_target = nullptr;
 }

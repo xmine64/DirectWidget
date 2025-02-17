@@ -12,7 +12,8 @@
 
 using namespace DirectWidget;
 
-const LogContext WidgetBase::m_log{ NAMEOF(WidgetBase) };
+const LogContext WidgetBase::Logger{ NAMEOF(WidgetBase) };
+const LogContext RenderContext::Logger{ NAMEOF(RenderContext) };
 
 property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
 property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
@@ -110,7 +111,7 @@ void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
 
     auto& d2d = DirectWidget::Application::instance()->d2d();
     auto hr = d2d->CreateRectangleGeometry(D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom), reinterpret_cast<ID2D1RectangleGeometry**>(&m_layout.geometry));
-    m_log.at(NAMEOF(finalize_layout)).at(NAMEOF(d2d->CreateRectangleGeometry)).fatal_exit(hr);
+    Logger.at(NAMEOF(finalize_layout)).at(NAMEOF(d2d->CreateRectangleGeometry)).fatal_exit(hr);
 
     notify_change(RenderBoundsProperty);
 }
@@ -122,11 +123,11 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
 
     com_ptr<ID2D1SolidColorBrush> bounds_brush;
     auto hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Red), &bounds_brush);
-    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
+    Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
     com_ptr<ID2D1SolidColorBrush> layout_brush;
     hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &layout_brush);
-    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
+    Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
     auto render_bounds = D2D1::RectF(
         m_layout.render_bounds.left,
@@ -147,7 +148,7 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
         });
 
     hr = render_target->Flush();
-    m_log.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->Flush)).log_error(hr);
+    Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->Flush)).log_error(hr);
 }
 
 void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target)
@@ -171,32 +172,45 @@ void WidgetBase::detach_render_target()
     notify_change(RenderTargetProperty);
 }
 
-void WidgetBase::render() const
-{
-    auto bounds = m_layout.render_bounds;
-    auto bounds_rect = D2D1::RectF(bounds.left, bounds.top, bounds.right, bounds.bottom);
-
-    render_target()->PushAxisAlignedClip(bounds_rect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-
-    on_render();
-
-    for_each_child([](WidgetBase* child) {
-        child->render();
-        });
-
-    render_target()->PopAxisAlignedClip();
-
-    auto hr = render_target()->Flush();
-    m_log.at(NAMEOF(render)).at(NAMEOF(render_target()->Flush)).log_error(hr);
-}
-
 bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
     if (m_layout.geometry == nullptr)
         return false;
 
     BOOL result = false;
     auto hr = m_layout.geometry->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
-    m_log.at(NAMEOF(hit_test)).at(NAMEOF(m_layout.geometry->FillContainsPoint)).log_error(hr);
+    Logger.at(NAMEOF(hit_test)).at(NAMEOF(m_layout.geometry->FillContainsPoint)).log_error(hr);
 
     return result;
+}
+
+void WidgetBase::RenderContentResource::initialize()
+{
+    if (is_valid()) return;
+
+    RenderContext context{ m_widget->m_render_target, m_widget->m_layout.render_bounds };
+    initialize_with_context(context);
+
+    if (Application::instance()->is_debug()) {
+        m_widget->render_debug_layout(context.render_target());
+    }
+
+    // TODO:
+    // if (hr == D2DERR_RECREATE_TARGET)
+}
+
+void WidgetBase::RenderContentResource::initialize_with_context(const RenderContext& render_context)
+{
+    if (is_valid()) return;
+
+    m_widget->render(render_context);
+    auto hr = render_context.render_target()->Flush();
+    Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
+
+    m_widget->for_each_child([&render_context](WidgetBase* child) {
+        auto child_render_context = render_context.render_child(child->render_bounds());
+        auto child_render_content = static_pointer_cast<RenderContentResource>(child->render_content());
+        child_render_content->initialize_with_context(child_render_context);
+        });
+
+    mark_valid();
 }

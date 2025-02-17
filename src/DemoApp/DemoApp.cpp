@@ -26,6 +26,10 @@ class MainWindow : public Window
 public:
     MainWindow() {
 
+        auto root_container = std::make_shared<CompositeWidget>();
+        root_container->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
+        root_container->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
+
         auto row = make_shared<StackLayout>();
         row->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
         row->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
@@ -81,8 +85,9 @@ public:
         update_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         update_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
         update_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
-        update_button->set_click_handler([this, stretched]() {
+        update_button->set_click_handler([this, stretched, root_container]() {
             stretched->set_text_alignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+            stretched->render_content()->initialize();
             });
         buttons_column->add_child(update_button);
 
@@ -91,11 +96,12 @@ public:
         increment_button->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
         increment_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
         increment_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
-        increment_button->set_click_handler([this]() {
+        increment_button->set_click_handler([this, root_container]() {
             m_counter_text.clear();
             m_counter_text.append(L"Counter: ");
             m_counter_text.append(to_wstring(++m_counter));
             m_counter_widget->set_text(m_counter_text.c_str());
+            m_counter_widget->render_content()->initialize();
             });
         buttons_column->add_child(increment_button);
 
@@ -111,7 +117,16 @@ public:
 
         row->add_child(buttons_column);
 
-        set_root_widget(row);
+        auto surface_background = std::make_shared<BoxWidget>();
+        surface_background->set_background_color(D2D1::ColorF(D2D1::ColorF::White));
+        surface_background->set_stroke_width(0.0f);
+        surface_background->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
+        surface_background->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
+        
+        root_container->add_child(surface_background);
+        root_container->add_child(row);
+
+        set_root_widget(root_container);
     }
 
     PCWSTR title() const override { return L"Demo App"; }

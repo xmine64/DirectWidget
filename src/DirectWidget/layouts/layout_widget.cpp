@@ -12,6 +12,16 @@ using namespace Layouts;
 
 collection_property_ptr<std::shared_ptr<WidgetBase>> LayoutWidgetBase::ChildrenProperty = make_collection<std::shared_ptr<WidgetBase>>();
 
+void LayoutWidgetBase::add_child(std::shared_ptr<WidgetBase> widget) { 
+    add_to_collection(ChildrenProperty, widget);
+    widget->render_content()->bind(render_content());
+}
+
+void LayoutWidgetBase::remove_child(std::shared_ptr<WidgetBase> widget) { 
+    remove_from_collection(ChildrenProperty, widget);
+    widget->render_content()->unbind(render_content());
+}
+
 void LayoutWidgetBase::create_resources()
 {
     for (auto& node : m_nodes)

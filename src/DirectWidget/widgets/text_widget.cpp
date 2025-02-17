@@ -43,10 +43,11 @@ TextWidget::TextWidget() {
         });
     m_text_fill->bind(RenderTargetProperty);
     m_text_fill->bind(ColorProperty);
+    render_content()->bind(m_text_fill);
 
     m_text_format = make_resource<IDWriteTextFormat>([this]() {
         auto& dwrite = Application::instance()->dwrite();
-        
+
         com_ptr<IDWriteTextFormat> text_format;
         auto hr = dwrite->CreateTextFormat(
             m_font_family,
@@ -58,10 +59,10 @@ TextWidget::TextWidget() {
             L"en-us",
             &text_format);
         Logger.at(NAMEOF(m_text_format)).fatal_exit(hr);
-        
+
         hr = text_format->SetTextAlignment(m_alignment);
         Logger.at(NAMEOF(m_text_format)).fatal_exit(hr);
-        
+
         text_format->SetParagraphAlignment(m_vertical_alignment);
         Logger.at(NAMEOF(m_text_format)).fatal_exit(hr);
 
@@ -72,6 +73,7 @@ TextWidget::TextWidget() {
     m_text_format->bind(FontSizeProperty);
     m_text_format->bind(TextAlignmentProperty);
     m_text_format->bind(ParagraphAlignmentProperty);
+    render_content()->bind(m_text_format);
 
     m_text_layout = make_resource<IDWriteTextLayout>([this]() {
         auto& dwrite = Application::instance()->dwrite();
@@ -91,6 +93,7 @@ TextWidget::TextWidget() {
     m_text_layout->bind(TextProperty);
     m_text_layout->bind(m_text_format);
     add_listener(std::make_shared<TextLayoutUpdater>());
+    render_content()->bind(m_text_layout);
 }
 
 SIZE_F TextWidget::measure(const SIZE_F& available_size) const
@@ -109,9 +112,9 @@ SIZE_F TextWidget::measure(const SIZE_F& available_size) const
     return { text_metrics.width, text_metrics.height };
 }
 
-void TextWidget::on_render() const
+void TextWidget::render(const RenderContext& context) const
 {
-    render_target()->DrawTextLayout(
+    context.render_target()->DrawTextLayout(
         D2D1::Point2F(render_bounds().left, render_bounds().top),
         m_text_layout->get(),
         m_text_fill->get(),
@@ -121,7 +124,7 @@ void TextWidget::on_render() const
 void TextWidget::TextLayoutUpdater::on_property_changed(sender_ptr sender, property_base_ptr property)
 {
     auto text_widget = static_cast<TextWidget*>(sender);
-    
+
     if (!text_widget->m_text_layout->is_valid()) {
         return;
     }

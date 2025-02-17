@@ -35,8 +35,8 @@ namespace DirectWidget {
 
             static collection_property_ptr<std::shared_ptr<WidgetBase>> ChildrenProperty;
 
-            void add_child(std::shared_ptr<WidgetBase> widget) { add_to_collection(ChildrenProperty, widget); }
-            void remove_child(std::shared_ptr<WidgetBase> widget) { remove_from_collection(ChildrenProperty, widget); }
+            void add_child(std::shared_ptr<WidgetBase> widget);
+            void remove_child(std::shared_ptr<WidgetBase> widget);
 
             // layout
 

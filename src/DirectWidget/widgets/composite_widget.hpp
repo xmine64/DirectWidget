@@ -21,8 +21,8 @@ namespace DirectWidget {
             
             static collection_property_ptr<std::shared_ptr<WidgetBase>> ChildrenProperty;
 
-            void add_child(std::shared_ptr<WidgetBase> widget) { add_to_collection(ChildrenProperty, widget); }
-            void remove_child(std::shared_ptr<WidgetBase> widget) { remove_from_collection(ChildrenProperty, widget); }
+            void add_child(std::shared_ptr<WidgetBase> widget);
+            void remove_child(std::shared_ptr<WidgetBase> widget);
 
             CompositeWidget() {
                 register_collection(ChildrenProperty, m_children);
@@ -35,6 +35,12 @@ namespace DirectWidget {
             SIZE_F measure(const SIZE_F& available_size) const;
 
             // render
+
+            // interaction
+
+            bool handle_pointer_hover(D2D1_POINT_2F point) override;
+            bool handle_pointer_press(D2D1_POINT_2F point) override;
+            bool handle_pointer_release(D2D1_POINT_2F point) override;
 
         protected:
 

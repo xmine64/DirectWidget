@@ -60,7 +60,7 @@ namespace DirectWidget {
 
         protected:
 
-            void on_render() const override;
+            void render(const RenderContext& context) const override;
 
         private:
 
