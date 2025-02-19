@@ -145,14 +145,21 @@ namespace DirectWidget {
 
         // interaction
 
-        void update_dpi(float dpi) { m_dpi = dpi; for_each_child([dpi](WidgetBase* widget) { widget->update_dpi(dpi); }); }
-
+        void attach_scale(const resource_ptr<float>& scale) {
+            m_scale = scale;
+            for_each_child([&scale](WidgetBase* child) {
+                child->attach_scale(scale);
+                });
+        }
+        
         D2D1_POINT_2F pixel_to_point(int x, int y) const {
-            return D2D1::Point2F(static_cast<float>(x) / m_dpi, static_cast<float>(y) / m_dpi);
+            auto& scale = m_scale->get();
+            return D2D1::Point2F(static_cast<float>(x) / scale, static_cast<float>(y) / scale);
         }
 
         D2D1_POINT_2U point_to_pixel(D2D1_POINT_2F point) const {
-            return D2D1::Point2U(static_cast<UINT>(point.x * m_dpi), static_cast<UINT>(point.y * m_dpi));
+            auto& scale = m_scale->get();
+            return D2D1::Point2U(static_cast<UINT>(point.x * scale), static_cast<UINT>(point.y * scale));
         }
 
         bool hit_test(D2D1_POINT_2F point) const;
@@ -192,10 +199,10 @@ namespace DirectWidget {
     private:
         static const LogContext Logger;
 
+        resource_ptr<float> m_scale;
+
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
         resource_base_ptr m_render_content;
-
-        float m_dpi = 1.0f;
 
         LAYOUT_STATE m_layout{};
 

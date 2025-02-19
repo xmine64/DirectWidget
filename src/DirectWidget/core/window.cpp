@@ -158,6 +158,7 @@ bool Window::create_device_resources()
     if (m_resource_created == true) return true;
 
     m_root_widget->attach_render_target(m_render_target->get());
+    m_root_widget->attach_scale(m_scale);
     m_root_widget->create_resources();
 
     auto render_target_size = m_render_target->get()->GetSize();
@@ -167,8 +168,6 @@ bool Window::create_device_resources()
     BOUNDS_F render_bounds;
     m_root_widget->layout(view_port, layout_bounds, render_bounds);
     m_root_widget->finalize_layout(render_bounds);
-
-    m_root_widget->update_dpi(m_scale->get());
 
     m_resource_created = true;
     return true;
