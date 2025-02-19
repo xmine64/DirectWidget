@@ -76,6 +76,8 @@ TextWidget::TextWidget() {
     render_content()->bind(m_text_format);
 
     m_text_layout = make_resource<IDWriteTextLayout>([this]() {
+        auto& render_bounds = render_bounds_resource()->get();
+
         auto& dwrite = Application::instance()->dwrite();
 
         com_ptr<IDWriteTextLayout> text_layout;
@@ -83,8 +85,8 @@ TextWidget::TextWidget() {
             m_text,
             static_cast<UINT32>(wcslen(m_text)),
             m_text_format->get(),
-            render_bounds().right - render_bounds().left,
-            render_bounds().bottom - render_bounds().top,
+            render_bounds.right - render_bounds.left,
+            render_bounds.bottom - render_bounds.top,
             &text_layout);
         Logger.at(NAMEOF(m_text_layout)).fatal_exit(hr);
 
@@ -92,20 +94,31 @@ TextWidget::TextWidget() {
         });
     m_text_layout->bind(TextProperty);
     m_text_layout->bind(m_text_format);
-    add_listener(std::make_shared<TextLayoutUpdater>());
+    render_bounds_resource()->add_listener(std::make_shared<TextLayoutUpdater>(this));
     render_content()->bind(m_text_layout);
 }
 
 SIZE_F TextWidget::measure(const SIZE_F& available_size) const
 {
-    m_text_layout->get()->SetMaxWidth(available_size.width);
-    m_text_layout->get()->SetMaxHeight(available_size.height);
+    auto& dwrite = Application::instance()->dwrite();
 
-    DWRITE_TEXT_METRICS text_metrics;
-    auto hr = m_text_layout->get()->GetMetrics(&text_metrics);
+    com_ptr<IDWriteTextLayout> text_layout;
+    auto hr = dwrite->CreateTextLayout(
+        m_text,
+        static_cast<UINT32>(wcslen(m_text)),
+        m_text_format->get(),
+        available_size.width,
+        available_size.height,
+        &text_layout);
     if (FAILED(hr)) {
         Logger.at(NAMEOF(measure)).log_error(hr);
+        return { 0, 0 };
+    }
 
+    DWRITE_TEXT_METRICS text_metrics;
+    hr = text_layout->GetMetrics(&text_metrics);
+    if (FAILED(hr)) {
+        Logger.at(NAMEOF(measure)).log_error(hr);
         return { 0, 0 };
     }
 
@@ -115,26 +128,19 @@ SIZE_F TextWidget::measure(const SIZE_F& available_size) const
 void TextWidget::render(const RenderContext& context) const
 {
     context.render_target()->DrawTextLayout(
-        D2D1::Point2F(render_bounds().left, render_bounds().top),
+        D2D1::Point2F(context.render_bounds().left, context.render_bounds().top),
         m_text_layout->get(),
         m_text_fill->get(),
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
 }
 
-void TextWidget::TextLayoutUpdater::on_property_changed(sender_ptr sender, property_base_ptr property)
+void TextWidget::TextLayoutUpdater::on_resource_initialized(ResourceBase* resource)
 {
-    auto text_widget = static_cast<TextWidget*>(sender);
+    auto& render_bounds = m_owner->render_bounds_resource()->get();
 
-    if (!text_widget->m_text_layout->is_valid()) {
-        return;
-    }
+    auto hr = m_owner->m_text_layout->get()->SetMaxWidth(render_bounds.right - render_bounds.left);
+    Logger.at(NAMEOF(TextWidget::TextLayoutUpdater::on_property_changed)).log_error(hr);
 
-    if (property == RenderBoundsProperty) {
-
-        auto hr = text_widget->m_text_layout->get()->SetMaxWidth(text_widget->render_bounds().right - text_widget->render_bounds().left);
-        Logger.at(NAMEOF(TextWidget::TextLayoutUpdater::on_property_changed)).log_error(hr);
-
-        text_widget->m_text_layout->get()->SetMaxHeight(text_widget->render_bounds().bottom - text_widget->render_bounds().top);
-        Logger.at(NAMEOF(TextWidget::TextLayoutUpdater::on_property_changed)).log_error(hr);
-    }
+    m_owner->m_text_layout->get()->SetMaxHeight(render_bounds.bottom - render_bounds.top);
+    Logger.at(NAMEOF(TextWidget::TextLayoutUpdater::on_property_changed)).log_error(hr);
 }

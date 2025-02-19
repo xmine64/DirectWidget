@@ -50,10 +50,10 @@ BoxWidget::BoxWidget() {
 void BoxWidget::render(const RenderContext& context) const
 {
     auto box = D2D1::RectF(
-        render_bounds().left,
-        render_bounds().top,
-        render_bounds().right,
-        render_bounds().bottom
+        context.render_bounds().left,
+        context.render_bounds().top,
+        context.render_bounds().right,
+        context.render_bounds().bottom
     );
     context.render_target()->FillRectangle(box, m_background_brush->get());
 

@@ -126,15 +126,11 @@ namespace DirectWidget {
         /// </summary>
         static property_base_ptr RenderTargetProperty;
 
-        /// <summary>
-        /// RenderBoundsProperty is a notification property that is used to notify when the widget render bounds has changed.
-        /// </summary>
-        static property_base_ptr RenderBoundsProperty;
-
         // layout
 
         const resource_ptr<SIZE_F> measure_resource() const { return m_measure; }
         const resource_ptr<BOUNDS_F> layout_bounds_resource() const { return m_layout_bounds; }
+        const resource_ptr<BOUNDS_F> render_bounds_resource() const { return m_render_bounds; }
 
         void finalize_layout(const BOUNDS_F& render_bounds);
 
@@ -149,7 +145,6 @@ namespace DirectWidget {
         virtual void create_resources() { for_each_child([](WidgetBase* widget) { widget->create_resources(); }); }
         virtual void discard_resources() { for_each_child([](WidgetBase* widget) { widget->discard_resources(); }); }
 
-        const BOUNDS_F& render_bounds() const { return m_layout.render_bounds; }
         const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
 
         // interaction
@@ -209,6 +204,7 @@ namespace DirectWidget {
         
         BOUNDS_F m_constraints;
         resource_ptr<BOUNDS_F> m_layout_bounds;
+        resource_ptr<BOUNDS_F> m_render_bounds;
 
         resource_ptr<float> m_scale;
 

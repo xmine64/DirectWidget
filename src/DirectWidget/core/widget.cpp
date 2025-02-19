@@ -27,7 +27,6 @@ property_ptr<SIZE_F> WidgetBase::MaxSizeProperty = make_property<SIZE_F>({ 0,0 }
 property_ptr<BOUNDS_F> WidgetBase::ConstraintsProperty = make_property<BOUNDS_F>({ 0,0,0,0 });
 
 property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
-property_base_ptr WidgetBase::RenderBoundsProperty = std::make_shared<PropertyBase>();
 
 WidgetBase::WidgetBase() {
     register_property(SizeProperty, m_size);
@@ -63,6 +62,7 @@ WidgetBase::WidgetBase() {
         };
         });
     m_measure->bind(MaxSizeProperty);
+    m_measure->bind(MarginProperty);
 
     m_layout_bounds = make_resource<BOUNDS_F>([this]() {
         BOUNDS_F layout_bounds;
@@ -75,8 +75,15 @@ WidgetBase::WidgetBase() {
     m_layout_bounds->bind(ConstraintsProperty);
     m_layout_bounds->bind(m_measure);
 
+    m_render_bounds = make_resource<BOUNDS_F>([this]() {
+        m_layout_bounds->initialize();
+        return m_layout.render_bounds;
+        });
+    m_render_bounds->bind(m_layout_bounds);
+    m_render_bounds->bind(MarginProperty);
+
     m_render_content = std::make_shared<RenderContentResource>(this);
-    m_render_content->bind(RenderBoundsProperty);
+    m_render_content->bind(m_render_bounds);
 }
 
 void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds)
@@ -160,8 +167,6 @@ void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
     auto& d2d = DirectWidget::Application::instance()->d2d();
     auto hr = d2d->CreateRectangleGeometry(D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom), reinterpret_cast<ID2D1RectangleGeometry**>(&m_layout.geometry));
     Logger.at(NAMEOF(finalize_layout)).at(NAMEOF(d2d->CreateRectangleGeometry)).fatal_exit(hr);
-
-    notify_change(RenderBoundsProperty);
 }
 
 void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
@@ -236,7 +241,7 @@ void WidgetBase::RenderContentResource::initialize()
     if (is_valid()) return;
 
     m_widget->layout_bounds_resource()->initialize();
-    RenderContext context{ m_widget->render_target(), m_widget->render_bounds()};
+    RenderContext context{ m_widget->render_target(), m_widget->render_bounds_resource()->get()};
     initialize_with_context(context);
 
     if (Application::instance()->is_debug()) {
@@ -256,8 +261,7 @@ void WidgetBase::RenderContentResource::initialize_with_context(const RenderCont
     Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
 
     m_widget->for_each_child([&render_context](WidgetBase* child) {
-        child->layout_bounds_resource()->initialize();
-        auto child_render_context = render_context.create_subcontext(child->render_bounds());
+        auto child_render_context = render_context.create_subcontext(child->render_bounds_resource()->get());
         auto child_render_content = static_pointer_cast<RenderContentResource>(child->render_content());
         child_render_content->initialize_with_context(child_render_context);
         });

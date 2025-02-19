@@ -78,12 +78,12 @@ namespace DirectWidget {
             com_resource_ptr<IDWriteTextFormat> m_text_format;
             com_resource_ptr<IDWriteTextLayout> m_text_layout;
 
-            class TextLayoutUpdater : public PropertyOwnerChangeListenerBase {
-
+            class TextLayoutUpdater : public ResourceListenerBase {
             public:
-
-                void on_property_changed(sender_ptr sender, property_base_ptr property) override;
-
+                TextLayoutUpdater(TextWidget* owner) : m_owner(owner) {}
+                void on_resource_initialized(ResourceBase* resource) override;
+            private:
+                TextWidget* m_owner;
             };
         };
 
