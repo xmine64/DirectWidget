@@ -34,9 +34,7 @@ HRESULT Application::initialize()
 // Run the message loop
 int Application::run_message_loop(Window& main_window, int nCmdShow)
 {
-    main_window.create();
-
-    ShowWindow(main_window.window_handle(), nCmdShow);
+    main_window.show(nCmdShow);
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0) > 0)

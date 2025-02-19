@@ -111,7 +111,7 @@ public:
         exit_button->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
         exit_button->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
         exit_button->set_click_handler([this]() {
-            DestroyWindow(this->window_handle());
+            close();
         });
         buttons_column->add_child(exit_button);
 

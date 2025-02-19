@@ -53,7 +53,7 @@ namespace DirectWidget {
         RenderContext(RenderContext&) = delete;
         RenderContext(RenderContext&&) = delete;
 
-        RenderContext render_child(const BOUNDS_F& render_bounds) const {
+        RenderContext create_subcontext(const BOUNDS_F& render_bounds) const {
             return RenderContext(false, m_render_target, render_bounds);
         }
 
@@ -161,6 +161,18 @@ namespace DirectWidget {
         virtual bool handle_pointer_press(D2D1_POINT_2F point) { return false; }
         virtual bool handle_pointer_release(D2D1_POINT_2F point) { return false; }
 
+        bool handle_pointer_move(int x, int y) {
+            return false; // TODO
+        }
+
+        bool handle_pointer_press(int x, int y) {
+            return handle_pointer_press(pixel_to_point(x, y));
+        }
+
+        bool handle_pointer_release(int x, int y) {
+            return handle_pointer_release(pixel_to_point(x, y));
+        }
+
     protected:
 
         WidgetBase() {
@@ -197,6 +209,7 @@ namespace DirectWidget {
             RenderContentResource(WidgetBase* widget) : m_widget(widget) {}
             void initialize() override;
             void initialize_with_context(const RenderContext& render_context);
+            void discard() override { mark_invalid(); }
         private:
             WidgetBase* m_widget;
         };

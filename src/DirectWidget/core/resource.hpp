@@ -19,11 +19,9 @@ namespace DirectWidget {
     class ResourceListenerBase {
 
     public:
-
         virtual void on_resource_initialized(ResourceBase* resource) {}
-
         virtual void on_resource_invalidated(ResourceBase* resource) {}
-
+        virtual void on_resource_updated(ResourceBase* resource) {}
     };
     using resource_listener_ptr = std::shared_ptr<ResourceListenerBase>;
 
@@ -46,17 +44,18 @@ namespace DirectWidget {
         void unbind(property_base_ptr property);
 
         virtual void initialize() = 0;
-
-        void invalidate() { if (m_valid == false) return; m_valid = false; notify_change(); }
+        virtual void discard() = 0;
 
         bool is_valid() const { return m_valid; }
 
     protected:
+        virtual bool try_update(const property_base_ptr& property) { return false; }
+        virtual bool try_update(const resource_base_ptr& resource) { return false; }
 
         void mark_valid() { if (m_valid == true) return; m_valid = true; notify_change(); }
+        void mark_invalid() { if (m_valid == false) return; m_valid = false; notify_change(); }
 
     private:
-
         void notify_change() {
             for (auto& listener : m_listeners) {
                 if (m_valid) {
@@ -65,6 +64,12 @@ namespace DirectWidget {
                 else {
                     listener->on_resource_invalidated(this);
                 }
+            }
+        }
+
+        void notify_update() {
+            for (auto& listener : m_listeners) {
+                listener->on_resource_updated(this);
             }
         }
 
@@ -82,8 +87,8 @@ namespace DirectWidget {
 
             void on_property_changed(sender_ptr sender, property_token property) override {
                 if (property != m_property.get()) return;
-
-                m_resource->invalidate();
+                if (m_resource->is_valid() && m_resource->try_update(m_property)) { m_resource->notify_update(); return; }
+                m_resource->discard();
             }
 
         private:
@@ -100,8 +105,26 @@ namespace DirectWidget {
 
             const resource_base_ptr& dependency() const { return m_dependency; }
 
+            void handle_change(ResourceBase* resource) {
+                if (m_self->is_valid() == false) return;
+                if (resource != m_dependency.get()) return;
+                if (m_self->try_update(m_dependency)) { 
+                    m_self->notify_update();
+                    return;
+                }
+                m_self->discard();
+            }
+
+            void on_resource_initialized(ResourceBase* resource) override {
+                handle_change(resource);
+            }
+
             void on_resource_invalidated(ResourceBase* resource) override {
-                m_self->invalidate();
+                handle_change(resource);
+            }
+
+            void on_resource_updated(ResourceBase* resource) override {
+                handle_change(resource);
             }
 
         private:
@@ -116,21 +139,44 @@ namespace DirectWidget {
     };
 
     template <typename T>
-    class Resource : public ResourceBase {
-
+    class TypedResourceBase : public ResourceBase {
     public:
-
-        Resource(const std::function<T()>& initializer) : m_initializer(initializer) {}
-
-        void initialize() override {
-            m_resource = m_initializer();
-            mark_valid();
-        }
+        virtual ~TypedResourceBase() = default;
 
         const T& get() {
-            if (!is_valid()) {
+            if (is_valid() == false) {
                 initialize();
             }
+
+            return get_internal();
+        }
+
+    protected:
+        virtual const T& get_internal() const = 0;
+    };
+
+    template <typename T>
+    class Resource : public TypedResourceBase<T> {
+
+    public:
+        Resource(const std::function<T()>& initializer) : m_initializer(initializer) {}
+        ~Resource() { discard(); }
+
+        void initialize() override {
+            if (this->is_valid() == true) return;
+
+            m_resource = m_initializer();
+            this->mark_valid();
+        }
+
+        void discard() override {
+            m_resource = T();
+            this->mark_invalid();
+        }
+
+    protected:
+
+        const T& get_internal() const {
             return m_resource;
         }
 
@@ -142,7 +188,7 @@ namespace DirectWidget {
     };
 
     template <typename T>
-    using resource_ptr = std::shared_ptr<Resource<T>>;
+    using resource_ptr = std::shared_ptr<TypedResourceBase<T>>;
 
     template <typename T>
     resource_ptr<T> make_resource(const std::function<T()>& initializer) {
@@ -150,7 +196,7 @@ namespace DirectWidget {
     }
 
     template<typename T>
-    using com_resource_ptr = std::shared_ptr<Resource<com_ptr<T>>>;
+    using com_resource_ptr = std::shared_ptr<TypedResourceBase<com_ptr<T>>>;
 
     template <typename T>
     com_resource_ptr<T> make_resource(const std::function<com_ptr<T>()>& initializer) {

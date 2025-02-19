@@ -207,7 +207,7 @@ void WidgetBase::RenderContentResource::initialize_with_context(const RenderCont
     Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
 
     m_widget->for_each_child([&render_context](WidgetBase* child) {
-        auto child_render_context = render_context.render_child(child->render_bounds());
+        auto child_render_context = render_context.create_subcontext(child->render_bounds());
         auto child_render_content = static_pointer_cast<RenderContentResource>(child->render_content());
         child_render_content->initialize_with_context(child_render_context);
         });
