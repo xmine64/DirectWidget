@@ -1,5 +1,7 @@
 // base_widget.cpp: BaseWidget implementation
 
+#include <memory>
+
 #include <Windows.h>
 #include <d2d1.h>
 #include <d2d1helper.h>
@@ -22,6 +24,7 @@ property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_prop
 property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
 
 property_ptr<SIZE_F> WidgetBase::MaxSizeProperty = make_property<SIZE_F>({ 0,0 });
+property_ptr<BOUNDS_F> WidgetBase::ConstraintsProperty = make_property<BOUNDS_F>({ 0,0,0,0 });
 
 property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
 property_base_ptr WidgetBase::RenderBoundsProperty = std::make_shared<PropertyBase>();
@@ -33,11 +36,44 @@ WidgetBase::WidgetBase() {
     register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
 
     register_property(MaxSizeProperty, m_max_size);
+    register_property(ConstraintsProperty, m_constraints);
 
     m_measure = make_resource<SIZE_F>([this]() {
-        return measure(maximum_size());
+        SIZE_F available_size{ maximum_size() };
+
+        if (m_size.width > 0) {
+            available_size.width = min(available_size.width, m_size.width);
+        }
+
+        if (m_size.height > 0) {
+            available_size.height = min(available_size.height, m_size.height);
+        }
+        
+        auto margin_width = m_margin.left + m_margin.right;
+        auto margin_height = m_margin.top + m_margin.bottom;
+
+        available_size.width -= margin_width;
+        available_size.height -= margin_height;
+
+        auto content_size = measure(available_size);
+        
+        return SIZE_F{
+            content_size.width + margin_width,
+            content_size.height + margin_height
+        };
         });
     m_measure->bind(MaxSizeProperty);
+
+    m_layout_bounds = make_resource<BOUNDS_F>([this]() {
+        BOUNDS_F layout_bounds;
+        BOUNDS_F render_bounds;
+        layout(m_constraints, layout_bounds, render_bounds);
+        finalize_layout(render_bounds);
+
+        return layout_bounds;
+        });
+    m_layout_bounds->bind(ConstraintsProperty);
+    m_layout_bounds->bind(m_measure);
 
     m_render_content = std::make_shared<RenderContentResource>(this);
     m_render_content->bind(RenderBoundsProperty);
@@ -47,84 +83,74 @@ void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BO
 {
     // Measure space required by the widget
 
-    auto available_size = SIZE_F{
-        constraints.right - constraints.left - m_margin.left - m_margin.right,
-        constraints.bottom - constraints.top - m_margin.top - m_margin.bottom
+    auto maximum_size = SIZE_F{
+        constraints.right - constraints.left,
+        constraints.bottom - constraints.top
     };
+    set_maximum_size(maximum_size);
+    SIZE_F size{ m_measure->get() };
 
-    if (m_size.width > 0) {
-        available_size.width = min(available_size.width, m_size.width);
-    }
-
-    if (m_size.height > 0) {
-        available_size.height = min(available_size.height, m_size.height);
-    }
-
-    set_maximum_size(available_size);
-
-    auto size = m_measure->get();
-
-    size.width = min(size.width, available_size.width);
-    size.height = min(size.height, available_size.height);
+    size.width = min(size.width, maximum_size.width);
+    size.height = min(size.height, maximum_size.height);
 
     // Align widget in the given bounds
 
     switch (m_horizontal_alignment) {
     case WIDGET_ALIGNMENT_START:
-        render_bounds.left = constraints.left + m_margin.left;
-        render_bounds.right = render_bounds.left + size.width;
+        layout_bounds.left = constraints.left;
+        layout_bounds.right = layout_bounds.left + size.width;
         break;
 
     case WIDGET_ALIGNMENT_CENTER:
     {
-        auto free_width = (constraints.right - constraints.left) - (m_margin.right + m_margin.left) - size.width;
-        render_bounds.left = constraints.left + m_margin.left + max(0.0f, free_width / 2);
-        render_bounds.right = render_bounds.left + size.width;
+        auto free_width = (constraints.right - constraints.left) - size.width;
+        layout_bounds.left = constraints.left + max(0.0f, free_width / 2);
+        layout_bounds.right = layout_bounds.left + size.width;
     }
     break;
 
     case WIDGET_ALIGNMENT_STRETCH:
-        render_bounds.left = constraints.left + m_margin.left;
-        render_bounds.right = constraints.right - m_margin.right;
+        layout_bounds.left = constraints.left;
+        layout_bounds.right = constraints.right;
         break;
 
     case WIDGET_ALIGNMENT_END:
-        render_bounds.right = constraints.right - m_margin.right;
-        render_bounds.left = render_bounds.right - size.width;
+        layout_bounds.right = constraints.right;
+        layout_bounds.left = layout_bounds.right - size.width;
         break;
     }
 
     switch (m_vertical_alignment) {
     case WIDGET_ALIGNMENT_START:
-        render_bounds.top = constraints.top + m_margin.top;
-        render_bounds.bottom = render_bounds.top + size.height;
+        layout_bounds.top = constraints.top;
+        layout_bounds.bottom = layout_bounds.top + size.height;
         break;
 
     case WIDGET_ALIGNMENT_CENTER:
     {
-        auto free_height = (constraints.bottom - constraints.top) - (m_margin.top + m_margin.bottom) - size.height;
-        render_bounds.top = constraints.top + m_margin.top + max(0.0f, free_height / 2);
-        render_bounds.bottom = render_bounds.top + size.height;
+        auto free_height = (constraints.bottom - constraints.top) - size.height;
+        layout_bounds.top = constraints.top + max(0.0f, free_height / 2);
+        layout_bounds.bottom = layout_bounds.top + size.height;
     }
     break;
 
     case WIDGET_ALIGNMENT_STRETCH:
-        render_bounds.top = constraints.top + m_margin.top;
-        render_bounds.bottom = constraints.bottom - m_margin.bottom;
+        layout_bounds.top = constraints.top;
+        layout_bounds.bottom = constraints.bottom;
         break;
 
     case WIDGET_ALIGNMENT_END:
-        render_bounds.bottom = constraints.bottom - m_margin.bottom;
-        render_bounds.top = render_bounds.bottom - size.height;
+        layout_bounds.bottom = constraints.bottom;
+        layout_bounds.top = layout_bounds.bottom - size.height;
         break;
     }
 
-    // Asign layout bounds
+    // Asign render bounds
 
-    layout_bounds.left = render_bounds.left - m_margin.left;
-    layout_bounds.top = render_bounds.top - m_margin.top;
-    layout_bounds.right = render_bounds.right + m_margin.right;
-    layout_bounds.bottom = render_bounds.bottom + m_margin.bottom;
+    render_bounds.left = layout_bounds.left + m_margin.left;
+    render_bounds.top = layout_bounds.top + m_margin.top;
+    render_bounds.right = layout_bounds.right - m_margin.right;
+    render_bounds.bottom = layout_bounds.bottom - m_margin.bottom;
 }
 
 void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
@@ -209,7 +235,8 @@ void WidgetBase::RenderContentResource::initialize()
 {
     if (is_valid()) return;
 
-    RenderContext context{ m_widget->m_render_target, m_widget->m_layout.render_bounds };
+    m_widget->layout_bounds_resource()->initialize();
+    RenderContext context{ m_widget->render_target(), m_widget->render_bounds()};
     initialize_with_context(context);
 
     if (Application::instance()->is_debug()) {
@@ -229,6 +256,7 @@ void WidgetBase::RenderContentResource::initialize_with_context(const RenderCont
     Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
 
     m_widget->for_each_child([&render_context](WidgetBase* child) {
+        child->layout_bounds_resource()->initialize();
         auto child_render_context = render_context.create_subcontext(child->render_bounds());
         auto child_render_content = static_pointer_cast<RenderContentResource>(child->render_content());
         child_render_content->initialize_with_context(child_render_context);

@@ -44,10 +44,9 @@ void CompositeWidget::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bound
     WidgetBase::layout(constraints, layout_bounds, render_bounds);
 
     for (auto& child : m_children) {
-        auto widget_layout_bounds = layout_bounds;
-        auto widget_render_bounds = render_bounds;
-        child->layout(render_bounds, widget_layout_bounds, widget_render_bounds);
-        child->finalize_layout(widget_render_bounds);
+        child->set_constraints(render_bounds);
+        auto& widget_layout_bounds = child->layout_bounds_resource()->get();
+        auto& widget_render_bounds = child->render_bounds();
 
         layout_bounds.left = min(layout_bounds.left, widget_layout_bounds.left);
         layout_bounds.top = min(layout_bounds.top, widget_layout_bounds.top);

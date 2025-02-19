@@ -59,25 +59,25 @@ void ButtonWidget::create_resources() {
     WidgetBase::create_resources();
 }
 
-SIZE_F ButtonWidget::measure(const SIZE_F& available_size) const {
-    if (m_text_widget == nullptr)
-    {
-        return { 0,0 };
-    }
-
-    auto text_available_size = SIZE_F{
-        available_size.width - m_padding.left - m_padding.right,
-        available_size.height - m_padding.top - m_padding.bottom
-    };
-
-    m_text_widget->set_maximum_size(text_available_size);
-    auto text_measures = m_text_widget->measure_resource()->get();
-
-    return {
-        text_measures.width + m_padding.left + m_padding.right,
-        text_measures.height + m_padding.top + m_padding.bottom
-    };
-}
+//SIZE_F ButtonWidget::measure(const SIZE_F& available_size) const {
+//    if (m_text_widget == nullptr)
+//    {
+//        return { 0,0 };
+//    }
+//
+//    auto text_available_size = SIZE_F{
+//        available_size.width - m_padding.left - m_padding.right,
+//        available_size.height - m_padding.top - m_padding.bottom
+//    };
+//
+//    m_text_widget->set_maximum_size(text_available_size);
+//    auto text_measures = m_text_widget->measure_resource()->get();
+//
+//    return {
+//        text_measures.width + m_padding.left + m_padding.right,
+//        text_measures.height + m_padding.top + m_padding.bottom
+//    };
+//}
 
 bool ButtonWidget::handle_pointer_hover(D2D1_POINT_2F point) {
     // TODO

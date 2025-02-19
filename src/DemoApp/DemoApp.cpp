@@ -50,13 +50,6 @@ public:
         description->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
         row->add_child(description);
 
-        auto counter = make_shared<TextWidget>();
-        counter->set_text(L"Counter: 0");
-        counter->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
-        counter->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
-        row->add_child(counter);
-        m_counter_widget = counter;
-
         auto center_align = make_shared<TextWidget>();
         center_align->set_text(L"Center Aligned");
         center_align->set_margin(BOUNDS_F{ 4.0f,4.0f,4.0f,4.0f });
@@ -75,6 +68,13 @@ public:
         stretched->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
         stretched->set_text_alignment(DWRITE_TEXT_ALIGNMENT_CENTER);
         row->add_child(stretched);
+
+        auto counter = make_shared<TextWidget>();
+        counter->set_text(L"Counter: 0");
+        counter->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });
+        counter->set_horizontal_alignment(WIDGET_ALIGNMENT_START);
+        row->add_child(counter);
+        m_counter_widget = counter;
 
         auto buttons_column = make_shared<StackLayout>();
         buttons_column->set_margin(BOUNDS_F{ 4.0f, 4.0f, 4.0f, 4.0f });

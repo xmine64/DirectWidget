@@ -163,13 +163,8 @@ bool Window::create_device_resources()
 
     auto render_target_size = m_render_target->get()->GetSize();
     m_root_widget->set_maximum_size(SIZE_F{ render_target_size.width, render_target_size.height });
-
-    auto view_port = BOUNDS_F{ 0,0,render_target_size.width, render_target_size.height };
-    BOUNDS_F layout_bounds;
-    BOUNDS_F render_bounds;
-    m_root_widget->layout(view_port, layout_bounds, render_bounds);
-    m_root_widget->finalize_layout(render_bounds);
-
+    m_root_widget->set_constraints(BOUNDS_F{ 0,0,render_target_size.width, render_target_size.height });
+    
     m_resource_created = true;
     return true;
 }
@@ -234,4 +229,13 @@ void Window::RenderTargetResource::initialize() {
     Logger.at(NAMEOF(create_device_resources)).at(NAMEOF(factory->CreateHwndRenderTarget)).fatal_exit(hr);
 
     mark_valid();
+}
+
+void Window::RenderTargetSizeChangeListener::layout_widget() {
+    if (m_owner->m_root_widget == nullptr) return;
+    if (m_owner->m_render_target->is_valid() == false) return;
+
+    auto render_target_size = m_owner->m_render_target->get()->GetSize();
+    m_owner->m_root_widget->set_maximum_size(SIZE_F{ render_target_size.width, render_target_size.height });
+    m_owner->m_root_widget->set_constraints(BOUNDS_F{ 0,0,render_target_size.width, render_target_size.height });
 }

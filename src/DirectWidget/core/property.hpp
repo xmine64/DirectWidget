@@ -152,8 +152,15 @@ namespace DirectWidget {
     };
 
     template <typename P>
-    property_ptr<P> make_property(const P& default_value) {
+    inline property_ptr<P> make_property(const P& default_value) {
         return std::make_shared<Property<P>>(default_value);
+    }
+
+    template <typename P>
+    inline property_ptr<P> make_property(const P& default_value, property_listener_ptr listener) {
+        auto& result = make_property(default_value);
+        result->add_listener(listener);
+        return result;
     }
 
     template <typename T>

@@ -58,7 +58,7 @@ namespace DirectWidget {
 
             // layout
 
-            SIZE_F measure(const SIZE_F& available_size) const override;
+            //SIZE_F measure(const SIZE_F& available_size) const override;
 
             // render
 

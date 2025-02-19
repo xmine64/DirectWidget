@@ -99,6 +99,7 @@ namespace DirectWidget {
         static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
 
         static property_ptr<SIZE_F> MaxSizeProperty;
+        static property_ptr<BOUNDS_F> ConstraintsProperty;
 
         SIZE_F size() const { return get_property<SIZE_F>(SizeProperty); }
         void set_size(const SIZE_F& size) { set_property<SIZE_F>(SizeProperty, size); }
@@ -115,6 +116,9 @@ namespace DirectWidget {
         const SIZE_F& maximum_size() const { return get_property<SIZE_F>(MaxSizeProperty); }
         void set_maximum_size(const SIZE_F& maximum_size) { set_property(MaxSizeProperty, maximum_size); }
 
+        const BOUNDS_F& constraints() const { return get_property<BOUNDS_F>(ConstraintsProperty); }
+        void set_constraints(const BOUNDS_F& constraints) { set_property<BOUNDS_F>(ConstraintsProperty, constraints); }
+
         // notification properties
 
         /// <summary>
@@ -130,8 +134,8 @@ namespace DirectWidget {
         // layout
 
         const resource_ptr<SIZE_F> measure_resource() const { return m_measure; }
+        const resource_ptr<BOUNDS_F> layout_bounds_resource() const { return m_layout_bounds; }
 
-        virtual void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds);
         void finalize_layout(const BOUNDS_F& render_bounds);
 
         void render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const;
@@ -145,7 +149,7 @@ namespace DirectWidget {
         virtual void create_resources() { for_each_child([](WidgetBase* widget) { widget->create_resources(); }); }
         virtual void discard_resources() { for_each_child([](WidgetBase* widget) { widget->discard_resources(); }); }
 
-        BOUNDS_F render_bounds() const { return m_layout.render_bounds; }
+        const BOUNDS_F& render_bounds() const { return m_layout.render_bounds; }
         const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
 
         // interaction
@@ -195,12 +199,17 @@ namespace DirectWidget {
 
         virtual SIZE_F measure(const SIZE_F& maximum_size) const { return { 0,0 }; }
 
+        virtual void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds);
+
     private:
         static const LogContext Logger;
 
         SIZE_F m_max_size;
         resource_ptr<SIZE_F> m_measure;
         
+        BOUNDS_F m_constraints;
+        resource_ptr<BOUNDS_F> m_layout_bounds;
+
         resource_ptr<float> m_scale;
 
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;

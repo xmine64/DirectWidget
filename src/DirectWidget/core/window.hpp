@@ -152,19 +152,7 @@ namespace DirectWidget {
                 layout_widget();
             }
 
-            void layout_widget() {
-                if (m_owner->m_root_widget == nullptr) return;
-                if (m_owner->m_render_target->is_valid() == false) return;
-
-                auto render_target_size = m_owner->m_render_target->get()->GetSize();
-
-                auto view_port = BOUNDS_F{ 0,0,render_target_size.width, render_target_size.height };
-                BOUNDS_F layout_bounds;
-                BOUNDS_F render_bounds;
-                m_owner->m_root_widget->layout(view_port, layout_bounds, render_bounds);
-                m_owner->m_root_widget->finalize_layout(render_bounds);
-                m_owner->m_root_widget->render_content()->discard();
-            }
+            void layout_widget();
 
         private:
             Window* m_owner;
