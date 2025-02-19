@@ -98,6 +98,8 @@ namespace DirectWidget {
         static property_ptr<WIDGET_ALIGNMENT> VerticalAlignmentProperty;
         static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
 
+        static property_ptr<SIZE_F> MaxSizeProperty;
+
         SIZE_F size() const { return get_property<SIZE_F>(SizeProperty); }
         void set_size(const SIZE_F& size) { set_property<SIZE_F>(SizeProperty, size); }
 
@@ -109,6 +111,9 @@ namespace DirectWidget {
 
         WIDGET_ALIGNMENT horizontal_alignment() const { return get_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty); }
         void set_horizontal_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty, alignment); }
+
+        const SIZE_F& maximum_size() const { return get_property<SIZE_F>(MaxSizeProperty); }
+        void set_maximum_size(const SIZE_F& maximum_size) { set_property(MaxSizeProperty, maximum_size); }
 
         // notification properties
 
@@ -124,10 +129,10 @@ namespace DirectWidget {
 
         // layout
 
-        virtual void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const;
-        void finalize_layout(const BOUNDS_F& render_bounds);
+        const resource_ptr<SIZE_F> measure_resource() const { return m_measure; }
 
-        virtual SIZE_F measure(const SIZE_F& available_size) const { return size_min(m_size, available_size); }
+        virtual void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds);
+        void finalize_layout(const BOUNDS_F& render_bounds);
 
         void render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const;
 
@@ -182,23 +187,20 @@ namespace DirectWidget {
 
     protected:
 
-        WidgetBase() {
-            register_property(SizeProperty, m_size);
-            register_property(MarginProperty, m_margin);
-            register_property(VerticalAlignmentProperty, m_vertical_alignment);
-            register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
-
-            m_render_content = std::make_shared<RenderContentResource>(this);
-            m_render_content->bind(RenderBoundsProperty);
-        }
+        WidgetBase();
 
         virtual void for_each_child(std::function<void(WidgetBase*)> callback) const {}
 
         virtual void render(const RenderContext& context) const {}
 
+        virtual SIZE_F measure(const SIZE_F& maximum_size) const { return { 0,0 }; }
+
     private:
         static const LogContext Logger;
 
+        SIZE_F m_max_size;
+        resource_ptr<SIZE_F> m_measure;
+        
         resource_ptr<float> m_scale;
 
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;

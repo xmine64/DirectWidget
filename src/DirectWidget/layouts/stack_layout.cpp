@@ -11,7 +11,7 @@ using namespace Layouts;
 
 property_ptr<STACK_LAYOUT_ORIENTATION> StackLayout::OrientationProperty = make_property(STACK_LAYOUT_HORIZONTAL);
 
-void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const
+void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds)
 {
     WidgetBase::layout(constraints, layout_bounds, render_bounds);
 
@@ -59,7 +59,8 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
                 flex_count++;
             }
             else {
-                node->measure = node->widget->measure(SIZE_F{ flex_size, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->widget->set_maximum_size(SIZE_F{ flex_size, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.width = node->measure.width + (node->widget->margin().left + node->widget->margin().right);
                 flex_size -= node->layout_size.width;
             }
@@ -69,7 +70,8 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
                 flex_count++;
             }
             else {
-                node->measure = node->widget->measure(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), flex_size });
+                node->widget->set_maximum_size(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), flex_size });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.height = node->measure.height + (node->widget->margin().top + node->widget->margin().bottom);
                 flex_size -= node->layout_size.height;
             }
@@ -90,11 +92,13 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
     for (auto& node : m_nodes) {
         if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             if (node->widget->horizontal_alignment() == WIDGET_ALIGNMENT_STRETCH) {
-                node->measure = node->widget->measure(SIZE_F{ flex_size - node->widget->margin().left - node->widget->margin().right, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->widget->set_maximum_size(SIZE_F{ flex_size - node->widget->margin().left - node->widget->margin().right, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.width = flex_size;
             }
             else {
-                node->measure = node->widget->measure(SIZE_F{ non_flex_size, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->widget->set_maximum_size(SIZE_F{ non_flex_size, available_size.height - (node->widget->margin().top + node->widget->margin().bottom) });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.width = node->measure.width + (node->widget->margin().left + node->widget->margin().right);
             }
 
@@ -105,11 +109,13 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
         }
         else {
             if (node->widget->vertical_alignment() == WIDGET_ALIGNMENT_STRETCH) {
-                node->measure = node->widget->measure(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), flex_size - node->widget->margin().top - node->widget->margin().bottom });
+                node->widget->set_maximum_size(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), flex_size - node->widget->margin().top - node->widget->margin().bottom });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.height = flex_size;
             }
             else {
-                node->measure = node->widget->measure(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), non_flex_size });
+                node->widget->set_maximum_size(SIZE_F{ available_size.width - (node->widget->margin().left + node->widget->margin().right), non_flex_size });
+                node->measure = node->widget->measure_resource()->get();
                 node->layout_size.height = node->measure.height + (node->widget->margin().top + node->widget->margin().bottom);
             }
 

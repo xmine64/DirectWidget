@@ -162,6 +162,7 @@ bool Window::create_device_resources()
     m_root_widget->create_resources();
 
     auto render_target_size = m_render_target->get()->GetSize();
+    m_root_widget->set_maximum_size(SIZE_F{ render_target_size.width, render_target_size.height });
 
     auto view_port = BOUNDS_F{ 0,0,render_target_size.width, render_target_size.height };
     BOUNDS_F layout_bounds;

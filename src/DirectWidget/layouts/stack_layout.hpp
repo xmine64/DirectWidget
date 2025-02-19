@@ -31,7 +31,7 @@ namespace DirectWidget {
 
             // layout
 
-            void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const override;
+            void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) override;
 
             SIZE_F measure(const SIZE_F& available_size) const override;
 

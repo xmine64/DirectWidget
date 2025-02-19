@@ -70,7 +70,8 @@ SIZE_F ButtonWidget::measure(const SIZE_F& available_size) const {
         available_size.height - m_padding.top - m_padding.bottom
     };
 
-    auto text_measures = m_text_widget->measure(text_available_size);
+    m_text_widget->set_maximum_size(text_available_size);
+    auto text_measures = m_text_widget->measure_resource()->get();
 
     return {
         text_measures.width + m_padding.left + m_padding.right,

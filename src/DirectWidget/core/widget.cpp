@@ -9,6 +9,7 @@
 #include "app.hpp"
 #include "widget.hpp"
 #include "property.hpp"
+#include "resource.hpp"
 
 using namespace DirectWidget;
 
@@ -20,10 +21,29 @@ property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0
 property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
 property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
 
+property_ptr<SIZE_F> WidgetBase::MaxSizeProperty = make_property<SIZE_F>({ 0,0 });
+
 property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
 property_base_ptr WidgetBase::RenderBoundsProperty = std::make_shared<PropertyBase>();
 
-void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const
+WidgetBase::WidgetBase() {
+    register_property(SizeProperty, m_size);
+    register_property(MarginProperty, m_margin);
+    register_property(VerticalAlignmentProperty, m_vertical_alignment);
+    register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
+
+    register_property(MaxSizeProperty, m_max_size);
+
+    m_measure = make_resource<SIZE_F>([this]() {
+        return measure(maximum_size());
+        });
+    m_measure->bind(MaxSizeProperty);
+
+    m_render_content = std::make_shared<RenderContentResource>(this);
+    m_render_content->bind(RenderBoundsProperty);
+}
+
+void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds)
 {
     // Measure space required by the widget
 
@@ -40,7 +60,9 @@ void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BO
         available_size.height = min(available_size.height, m_size.height);
     }
 
-    auto size = measure(available_size);
+    set_maximum_size(available_size);
+
+    auto size = m_measure->get();
 
     size.width = min(size.width, available_size.width);
     size.height = min(size.height, available_size.height);

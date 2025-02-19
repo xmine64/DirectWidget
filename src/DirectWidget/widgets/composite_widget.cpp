@@ -19,7 +19,8 @@ SIZE_F CompositeWidget::measure(const SIZE_F& available_size) const
     auto result = WidgetBase::measure(available_size);
 
     for (auto& child : m_children) {
-        auto size = child->measure(available_size);
+        child->set_maximum_size(available_size);
+        auto size = child->measure_resource()->get();
         result.width = max(result.width, size.width);
         result.height = max(result.height, size.height);
     }
@@ -39,7 +40,7 @@ void CompositeWidget::remove_child(std::shared_ptr<WidgetBase> widget) {
     render_content()->unbind(widget->render_content());
 }
 
-void CompositeWidget::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) const {
+void CompositeWidget::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) {
     WidgetBase::layout(constraints, layout_bounds, render_bounds);
 
     for (auto& child : m_children) {
