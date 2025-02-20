@@ -91,7 +91,7 @@ void LayoutWidgetBase::LayoutWidgetChildrenListener::register_listener() {
     is_registered = true;
 }
 
-void LayoutWidgetBase::LayoutWidgetChildrenListener::on_collection_changed(sender_ptr sender, property_token property, const std::shared_ptr<WidgetBase>& widget, bool add_or_remove) {
+void LayoutWidgetBase::LayoutWidgetChildrenListener::on_collection_changed(ElementBase* sender, property_token property, const std::shared_ptr<WidgetBase>& widget, bool add_or_remove) {
     auto& layout = *static_cast<LayoutWidgetBase*>(sender);
 
     if (add_or_remove) {

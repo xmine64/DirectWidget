@@ -61,13 +61,13 @@ WidgetBase::WidgetBase() {
             content_size.height + margin_height
         };
         });
-    m_measure->bind(MaxSizeProperty);
-    m_measure->bind(MarginProperty);
+    //m_measure->bind(MaxSizeProperty);
+    //m_measure->bind(MarginProperty);
 
     m_layout = std::make_shared<LayoutResource>(this);
     m_layout->bind(m_measure);
-    m_layout->bind(ConstraintsProperty);
-    m_layout->bind(MarginProperty);
+    //m_layout->bind(ConstraintsProperty);
+    //m_layout->bind(MarginProperty);
 
     m_render_bounds = make_resource<BOUNDS_F>([this]() {
         return m_layout->get().render_bounds();

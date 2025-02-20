@@ -73,7 +73,7 @@ namespace DirectWidget {
 
                 static void register_listener();
 
-                void on_collection_changed(sender_ptr sender, property_token property, const std::shared_ptr<WidgetBase>& widget, bool add_or_remove);
+                void on_collection_changed(ElementBase* sender, property_token property, const std::shared_ptr<WidgetBase>& widget, bool add_or_remove);
 
             };
         };

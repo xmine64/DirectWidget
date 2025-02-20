@@ -17,6 +17,7 @@
 // Local headers
 
 #include "foundation.hpp"
+#include "element_base.hpp"
 #include "property.hpp"
 #include "resource.hpp"
 
@@ -127,7 +128,7 @@ namespace DirectWidget {
         WIDGET_ALIGNMENT_STRETCH,
     };
 
-    class WidgetBase : public PropertyOwnerBase
+    class WidgetBase : public ElementBase
     {
     public:
 

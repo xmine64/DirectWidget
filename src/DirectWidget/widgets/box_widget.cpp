@@ -24,7 +24,7 @@ BoxWidget::BoxWidget() {
     register_property(StrokeColorProperty, m_stroke_color);
     register_property(StrokeWidthProperty, m_stroke_width);
 
-    render_content()->bind(StrokeWidthProperty);
+    //render_content()->bind(StrokeWidthProperty);
 
     m_background_brush = make_resource<ID2D1Brush>([this]() {
         com_ptr<ID2D1SolidColorBrush> m_brush;
@@ -32,8 +32,8 @@ BoxWidget::BoxWidget() {
         m_log.at(NAMEOF(m_background_brush)).fatal_exit(hr);
         return m_brush;
         });
-    m_background_brush->bind(RenderTargetProperty);
-    m_background_brush->bind(BackgroundColorProperty);
+    //m_background_brush->bind(RenderTargetProperty);
+    //m_background_brush->bind(BackgroundColorProperty);
     render_content()->bind(m_background_brush);
 
     m_stroke_brush = make_resource<ID2D1Brush>([this]() {
@@ -42,8 +42,8 @@ BoxWidget::BoxWidget() {
         m_log.at(NAMEOF(m_stroke_brush)).fatal_exit(hr);
         return m_brush;
         });
-    m_stroke_brush->bind(RenderTargetProperty);
-    m_stroke_brush->bind(StrokeColorProperty);
+    //m_stroke_brush->bind(RenderTargetProperty);
+    //m_stroke_brush->bind(StrokeColorProperty);
     render_content()->bind(m_stroke_brush);
 }
 

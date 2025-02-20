@@ -4,29 +4,27 @@
 #pragma once
 
 #include <memory>
-#include <type_traits>
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 #include "foundation.hpp"
 #include "property.hpp"
 
 namespace DirectWidget {
 
-    class ResourceBase;
-    using resource_base_ptr = std::shared_ptr<ResourceBase>;
+    // Listeners
 
     class ResourceListenerBase {
-
     public:
         virtual void on_resource_initialized(ResourceBase* resource) {}
         virtual void on_resource_invalidated(ResourceBase* resource) {}
         virtual void on_resource_updated(ResourceBase* resource) {}
     };
-    using resource_listener_ptr = std::shared_ptr<ResourceListenerBase>;
+
+    // Resources
 
     class ResourceBase {
-
     public:
         virtual ~ResourceBase();
 
@@ -39,9 +37,9 @@ namespace DirectWidget {
         }
 
         void bind(resource_base_ptr resource);
-        void bind(property_base_ptr property);
+        void bind(element_ptr owner, property_base_ptr property);
         void unbind(resource_base_ptr resource);
-        void unbind(property_base_ptr property);
+        void unbind(element_ptr owner, property_base_ptr property);
 
         virtual void initialize() = 0;
         virtual void discard() = 0;
@@ -85,16 +83,24 @@ namespace DirectWidget {
 
             const property_base_ptr& property() const { return m_property; }
 
-            void on_property_changed(sender_ptr sender, property_token property) override {
+            void register_owner(const element_ptr& owner) {
+                m_registered_owners.push_back(owner);
+            }
+
+            void unregister_owner(const element_ptr& owner) {
+                m_registered_owners.erase(std::find(m_registered_owners.begin(), m_registered_owners.end(), owner));
+            }
+
+            void on_property_changed(ElementBase* sender, property_token property) override {
                 if (property != m_property.get()) return;
                 if (m_resource->is_valid() && m_resource->try_update(m_property)) { m_resource->notify_update(); return; }
                 m_resource->discard();
             }
 
         private:
-
             ResourceBase* m_resource;
             property_base_ptr m_property;
+            std::vector<element_ptr> m_registered_owners;
         };
 
         class ResourceBinding : public ResourceListenerBase {
@@ -134,7 +140,7 @@ namespace DirectWidget {
 
         };
 
-        std::vector<std::shared_ptr<PropertyBinding>> m_property_bindings;
+        std::unordered_map<property_base_ptr, std::shared_ptr<PropertyBinding>> m_property_bindings;
         std::vector<std::shared_ptr<ResourceBinding>> m_resource_bindings;
     };
 
@@ -157,7 +163,6 @@ namespace DirectWidget {
 
     template <typename T>
     class Resource : public TypedResourceBase<T> {
-
     public:
         Resource(const std::function<T()>& initializer) : m_initializer(initializer) {}
         ~Resource() { discard(); }
@@ -175,32 +180,22 @@ namespace DirectWidget {
         }
 
     protected:
-
         const T& get_internal() const {
             return m_resource;
         }
 
     private:
-
         std::function<T()> m_initializer;
-
         T m_resource;
     };
-
-    template <typename T>
-    using resource_ptr = std::shared_ptr<TypedResourceBase<T>>;
 
     template <typename T>
     resource_ptr<T> make_resource(const std::function<T()>& initializer) {
         return std::make_shared<Resource<T>>(initializer);
     }
 
-    template<typename T>
-    using com_resource_ptr = std::shared_ptr<TypedResourceBase<com_ptr<T>>>;
-
     template <typename T>
     com_resource_ptr<T> make_resource(const std::function<com_ptr<T>()>& initializer) {
         return std::make_shared<Resource<com_ptr<T>>>(initializer);
     }
-
 }

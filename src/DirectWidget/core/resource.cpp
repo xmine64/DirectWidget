@@ -7,7 +7,7 @@ using namespace DirectWidget;
 
 ResourceBase::~ResourceBase()
 {
-    for (auto& binding : m_property_bindings) {
+    for (auto& [element, binding] : m_property_bindings) {
         binding->property()->remove_listener(binding);
     }
     for (auto& binding : m_resource_bindings) {
@@ -22,11 +22,20 @@ void DirectWidget::ResourceBase::bind(resource_base_ptr resource)
     m_resource_bindings.push_back(binding);
 }
 
-void ResourceBase::bind(property_base_ptr property)
+void ResourceBase::bind(element_ptr owner, property_base_ptr property)
 {
-    auto binding = std::make_shared<PropertyBinding>(this, property);
-    property->add_listener(binding);
-    m_property_bindings.push_back(binding);
+    std::shared_ptr<PropertyBinding> binding;
+    auto iter = m_property_bindings.find(property);
+    if (iter == m_property_bindings.end()) {
+        binding = std::make_shared<PropertyBinding>(this, property);
+        property->add_listener(binding);
+        m_property_bindings.insert({ property, binding });
+    }
+    else {
+        binding = iter->second;
+    }
+    
+    binding->register_owner(owner);
 }
 
 void ResourceBase::unbind(resource_base_ptr resource)
@@ -39,12 +48,9 @@ void ResourceBase::unbind(resource_base_ptr resource)
     m_resource_bindings.erase(iter);
 }
 
-void ResourceBase::unbind(property_base_ptr property)
+void ResourceBase::unbind(element_ptr owner, property_base_ptr property)
 {
-    auto iter = std::find_if(m_property_bindings.begin(), m_property_bindings.end(), [property](const std::shared_ptr<PropertyBinding>& binding) {
-        return binding->property() == property;
-        });
-    if (iter == m_property_bindings.end()) { return; }
-    property->remove_listener(*iter);
-    m_property_bindings.erase(iter);
+    auto iter = m_property_bindings.find(property);
+    if (iter == m_property_bindings.end()) return;
+    iter->second->unregister_owner(owner);
 }

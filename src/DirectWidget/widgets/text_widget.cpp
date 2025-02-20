@@ -41,8 +41,8 @@ TextWidget::TextWidget() {
         Logger.at(NAMEOF(m_text_fill)).fatal_exit(hr);
         return brush;
         });
-    m_text_fill->bind(RenderTargetProperty);
-    m_text_fill->bind(ColorProperty);
+    //m_text_fill->bind(RenderTargetProperty);
+    //m_text_fill->bind(ColorProperty);
     render_content()->bind(m_text_fill);
 
     m_text_format = make_resource<IDWriteTextFormat>([this]() {
@@ -68,11 +68,11 @@ TextWidget::TextWidget() {
 
         return text_format;
         });
-    m_text_format->bind(FontFamilyProperty);
-    m_text_format->bind(FontWeightProperty);
-    m_text_format->bind(FontSizeProperty);
-    m_text_format->bind(TextAlignmentProperty);
-    m_text_format->bind(ParagraphAlignmentProperty);
+    //m_text_format->bind(FontFamilyProperty);
+    //m_text_format->bind(FontWeightProperty);
+    //m_text_format->bind(FontSizeProperty);
+    //m_text_format->bind(TextAlignmentProperty);
+    //m_text_format->bind(ParagraphAlignmentProperty);
     render_content()->bind(m_text_format);
 
     m_text_layout = make_resource<IDWriteTextLayout>([this]() {
@@ -92,7 +92,7 @@ TextWidget::TextWidget() {
 
         return text_layout;
         });
-    m_text_layout->bind(TextProperty);
+    //m_text_layout->bind(TextProperty);
     m_text_layout->bind(m_text_format);
     render_bounds_resource()->add_listener(std::make_shared<TextLayoutUpdater>(this));
     render_content()->bind(m_text_layout);

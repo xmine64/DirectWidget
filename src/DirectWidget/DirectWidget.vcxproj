@@ -183,6 +183,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\app.hpp" />
+    <ClInclude Include="core\element_base.hpp" />
     <ClInclude Include="core\property.hpp" />
     <ClInclude Include="core\resource.hpp" />
     <ClInclude Include="layouts\stack_layout.hpp" />

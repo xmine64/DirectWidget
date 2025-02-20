@@ -15,7 +15,7 @@
 
 namespace DirectWidget {
 
-    class Window : public PropertyOwnerBase {
+    class Window : public ElementBase {
     public:
 
         static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
