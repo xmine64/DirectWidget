@@ -11,11 +11,11 @@ using namespace Layouts;
 
 property_ptr<STACK_LAYOUT_ORIENTATION> StackLayout::OrientationProperty = make_property(STACK_LAYOUT_HORIZONTAL);
 
-void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds)
+void StackLayout::layout(LayoutContext& context) const
 {
-    WidgetBase::layout(constraints, layout_bounds, render_bounds);
+    WidgetBase::layout(context);
 
-    auto available_bounds = render_bounds;
+    BOUNDS_F available_bounds{ context.render_bounds() };
 
     for (auto& node : m_nodes) {
         auto node_constraints = BOUNDS_F{
@@ -30,7 +30,7 @@ void StackLayout::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, B
         else {
             node_constraints.right = available_bounds.right;
         }
-        node->widget->set_constraints(node_constraints);
+        context.layout_child(node->widget, node_constraints);
         
         if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
             available_bounds.left += node->layout_size.width;

@@ -40,23 +40,13 @@ void CompositeWidget::remove_child(std::shared_ptr<WidgetBase> widget) {
     render_content()->unbind(widget->render_content());
 }
 
-void CompositeWidget::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds) {
-    WidgetBase::layout(constraints, layout_bounds, render_bounds);
+void CompositeWidget::layout(LayoutContext& context) const {
+    WidgetBase::layout(context);
 
+    widget_ptr previous_child;
     for (auto& child : m_children) {
-        child->set_constraints(render_bounds);
-        auto& widget_layout_bounds = child->layout_bounds_resource()->get();
-        auto& widget_render_bounds = child->render_bounds_resource()->get();
-
-        layout_bounds.left = min(layout_bounds.left, widget_layout_bounds.left);
-        layout_bounds.top = min(layout_bounds.top, widget_layout_bounds.top);
-        layout_bounds.right = max(layout_bounds.right, widget_layout_bounds.right);
-        layout_bounds.bottom = max(layout_bounds.bottom, widget_layout_bounds.bottom);
-
-        render_bounds.left = min(render_bounds.left, widget_render_bounds.left);
-        render_bounds.top = min(render_bounds.top, widget_render_bounds.top);
-        render_bounds.right = max(render_bounds.right, widget_render_bounds.right);
-        render_bounds.bottom = max(render_bounds.bottom, widget_render_bounds.bottom);
+        context.layout_child(child, context.render_bounds(), previous_child);
+        previous_child = child;
     }
 }
 

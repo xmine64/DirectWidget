@@ -22,6 +22,57 @@
 
 namespace DirectWidget {
 
+    class WidgetBase;
+    using widget_ptr = std::shared_ptr<WidgetBase>;
+
+    class LayoutContext {
+    public:
+        LayoutContext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin, const widget_ptr& background_widget) :
+            m_measure(measure), m_constraints(constraints), m_margin(margin), m_background_widget(background_widget) {
+            m_layout_bounds = constraints;
+        }
+        
+        LayoutContext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin) :
+            LayoutContext(measure, constraints, margin, nullptr) { }
+
+        void layout_child(const widget_ptr& child, const BOUNDS_F& constraints) const {
+            layout_child(child, constraints, m_background_widget);
+        }
+        void layout_child(const widget_ptr& child, const BOUNDS_F& constraints, const widget_ptr& background) const;
+
+        LayoutContext create_subcontext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin) const {
+            return LayoutContext(measure, constraints, margin, m_background_widget);
+        }
+
+        LayoutContext create_subcontext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin, const widget_ptr& background_widget) const {
+            return LayoutContext(measure, constraints, margin, background_widget);
+        }
+
+        const SIZE_F& measure() const { return m_measure; }
+        const BOUNDS_F& constraints() const { return m_constraints; }
+        const widget_ptr& background_widget() const { return m_background_widget; }
+
+        BOUNDS_F& layout_bounds() { return m_layout_bounds; }
+
+        const BOUNDS_F& layout_bounds() const { return m_layout_bounds; }
+
+        BOUNDS_F render_bounds() const { 
+            return { 
+                m_layout_bounds.left + m_margin.left,
+                m_layout_bounds.top + m_margin.top,
+                m_layout_bounds.right - m_margin.right,
+                m_layout_bounds.bottom - m_margin.bottom
+            };
+        }
+
+    private:
+        SIZE_F m_measure;
+        BOUNDS_F m_constraints;
+        BOUNDS_F m_layout_bounds;
+        BOUNDS_F m_margin;
+        widget_ptr m_background_widget;
+    };
+
     class RenderContext {
     public:
         RenderContext(const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
@@ -76,9 +127,6 @@ namespace DirectWidget {
         WIDGET_ALIGNMENT_STRETCH,
     };
 
-    class WidgetBase;
-    using widget_ptr = std::shared_ptr<WidgetBase>;
-
     class WidgetBase : public PropertyOwnerBase
     {
     public:
@@ -120,9 +168,9 @@ namespace DirectWidget {
 
         // layout
 
-        const resource_ptr<SIZE_F> measure_resource() const { return m_measure; }
-        const resource_ptr<BOUNDS_F> layout_bounds_resource() const { return m_layout_bounds; }
-        const resource_ptr<BOUNDS_F> render_bounds_resource() const { return m_render_bounds; }
+        const resource_ptr<SIZE_F>& measure_resource() const { return m_measure; }
+        const resource_ptr<LayoutContext>& layout_resource() const { return m_layout; }
+        const resource_ptr<BOUNDS_F>& render_bounds_resource() const { return m_render_bounds; }
 
         void render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const;
 
@@ -184,7 +232,7 @@ namespace DirectWidget {
 
         virtual SIZE_F measure(const SIZE_F& maximum_size) const { return { 0,0 }; }
 
-        virtual void layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BOUNDS_F& render_bounds);
+        virtual void layout(LayoutContext& context) const;
 
     private:
         static const LogContext Logger;
@@ -193,7 +241,7 @@ namespace DirectWidget {
         resource_ptr<SIZE_F> m_measure;
         
         BOUNDS_F m_constraints;
-        resource_ptr<BOUNDS_F> m_layout_bounds;
+        resource_ptr<LayoutContext> m_layout;
         resource_ptr<BOUNDS_F> m_render_bounds;
         com_resource_ptr<ID2D1Geometry> m_render_geometry;
 
@@ -206,15 +254,34 @@ namespace DirectWidget {
         BOUNDS_F m_margin;
         WIDGET_ALIGNMENT m_vertical_alignment;
         WIDGET_ALIGNMENT m_horizontal_alignment;
+        
+        class LayoutResource : public TypedResourceBase<LayoutContext> {
+        public:
+            LayoutResource(WidgetBase* owner) : m_owner(owner), m_context({ 0,0 }, { 0,0,0,0 }, { 0,0,0,0 }) { }
+
+            void initialize() override;
+            void initialize_with_context(const LayoutContext& context);
+            void discard() override { mark_invalid(); }
+
+        protected:
+            const LayoutContext& get_internal() const { return m_context; }
+
+        private:
+            WidgetBase* m_owner;
+            LayoutContext m_context;
+        };
 
         class RenderContentResource : public ResourceBase {
         public:
             RenderContentResource(WidgetBase* widget) : m_widget(widget) {}
             void initialize() override;
             void initialize_with_context(const RenderContext& render_context);
-            void discard() override { mark_invalid(); }
+            void discard() override;
         private:
             WidgetBase* m_widget;
+            widget_ptr m_background_widget;
         };
+
+        friend LayoutContext;
     };
 }
