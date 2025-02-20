@@ -22,14 +22,6 @@
 
 namespace DirectWidget {
 
-    typedef struct {
-
-        BOUNDS_F render_bounds;
-
-        com_ptr<ID2D1Geometry> geometry;
-
-    } LAYOUT_STATE;
-
     class RenderContext {
     public:
         RenderContext(const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
@@ -132,8 +124,6 @@ namespace DirectWidget {
         const resource_ptr<BOUNDS_F> layout_bounds_resource() const { return m_layout_bounds; }
         const resource_ptr<BOUNDS_F> render_bounds_resource() const { return m_render_bounds; }
 
-        void finalize_layout(const BOUNDS_F& render_bounds);
-
         void render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const;
 
         // rendering
@@ -205,13 +195,12 @@ namespace DirectWidget {
         BOUNDS_F m_constraints;
         resource_ptr<BOUNDS_F> m_layout_bounds;
         resource_ptr<BOUNDS_F> m_render_bounds;
+        com_resource_ptr<ID2D1Geometry> m_render_geometry;
 
         resource_ptr<float> m_scale;
 
         com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
         resource_base_ptr m_render_content;
-
-        LAYOUT_STATE m_layout{};
 
         SIZE_F m_size;
         BOUNDS_F m_margin;

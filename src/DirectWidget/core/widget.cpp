@@ -47,7 +47,7 @@ WidgetBase::WidgetBase() {
         if (m_size.height > 0) {
             available_size.height = min(available_size.height, m_size.height);
         }
-        
+
         auto margin_width = m_margin.left + m_margin.right;
         auto margin_height = m_margin.top + m_margin.bottom;
 
@@ -55,7 +55,7 @@ WidgetBase::WidgetBase() {
         available_size.height -= margin_height;
 
         auto content_size = measure(available_size);
-        
+
         return SIZE_F{
             content_size.width + margin_width,
             content_size.height + margin_height
@@ -68,7 +68,6 @@ WidgetBase::WidgetBase() {
         BOUNDS_F layout_bounds;
         BOUNDS_F render_bounds;
         layout(m_constraints, layout_bounds, render_bounds);
-        finalize_layout(render_bounds);
 
         return layout_bounds;
         });
@@ -76,11 +75,28 @@ WidgetBase::WidgetBase() {
     m_layout_bounds->bind(m_measure);
 
     m_render_bounds = make_resource<BOUNDS_F>([this]() {
-        m_layout_bounds->initialize();
-        return m_layout.render_bounds;
+        auto& layout_bounds = m_layout_bounds->get();
+        return BOUNDS_F{
+            layout_bounds.left + m_margin.left,
+            layout_bounds.top + m_margin.top,
+            layout_bounds.right - m_margin.right,
+            layout_bounds.bottom - m_margin.bottom
+        };
         });
     m_render_bounds->bind(m_layout_bounds);
     m_render_bounds->bind(MarginProperty);
+
+    m_render_geometry = make_resource<ID2D1Geometry>([this]() {
+        auto& render_bounds = m_render_bounds->get();
+        auto rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
+
+        auto& d2d = DirectWidget::Application::instance()->d2d();
+        com_ptr<ID2D1RectangleGeometry> result;
+        auto hr = d2d->CreateRectangleGeometry(rect, &result);
+        Logger.at(NAMEOF(m_render_geometry)).at(NAMEOF(ID2D1Factory::CreateRectangleGeometry)).fatal_exit(hr);
+        return result;
+        });
+    m_render_geometry->bind(m_render_bounds);
 
     m_render_content = std::make_shared<RenderContentResource>(this);
     m_render_content->bind(m_render_bounds);
@@ -152,28 +168,14 @@ void WidgetBase::layout(const BOUNDS_F& constraints, BOUNDS_F& layout_bounds, BO
         break;
     }
 
-    // Asign render bounds
-
     render_bounds.left = layout_bounds.left + m_margin.left;
     render_bounds.top = layout_bounds.top + m_margin.top;
     render_bounds.right = layout_bounds.right - m_margin.right;
     render_bounds.bottom = layout_bounds.bottom - m_margin.bottom;
 }
 
-void WidgetBase::finalize_layout(const BOUNDS_F& render_bounds)
-{
-    m_layout.render_bounds = render_bounds;
-
-    auto& d2d = DirectWidget::Application::instance()->d2d();
-    auto hr = d2d->CreateRectangleGeometry(D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom), reinterpret_cast<ID2D1RectangleGeometry**>(&m_layout.geometry));
-    Logger.at(NAMEOF(finalize_layout)).at(NAMEOF(d2d->CreateRectangleGeometry)).fatal_exit(hr);
-}
-
 void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const
 {
-    if (m_layout.geometry == nullptr)
-        return;
-
     com_ptr<ID2D1SolidColorBrush> bounds_brush;
     auto hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Red), &bounds_brush);
     Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
@@ -182,19 +184,14 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
     hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &layout_brush);
     Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
-    auto render_bounds = D2D1::RectF(
-        m_layout.render_bounds.left,
-        m_layout.render_bounds.top,
-        m_layout.render_bounds.right,
-        m_layout.render_bounds.bottom);
-    auto layout_bounds = D2D1::RectF(
-        render_bounds.left - m_margin.left,
-        render_bounds.top - m_margin.top,
-        render_bounds.right + m_margin.right,
-        render_bounds.bottom + m_margin.bottom);
+    auto& layout_bounds = m_layout_bounds->get();
+    auto layout_rect = D2D1::RectF(layout_bounds.left, layout_bounds.top, layout_bounds.right, layout_bounds.bottom);
 
-    render_target->DrawRectangle(render_bounds, bounds_brush);
-    render_target->DrawRectangle(layout_bounds, layout_brush);
+    auto& render_bounds = m_render_bounds->get();
+    auto render_rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
+
+    render_target->DrawRectangle(render_rect, bounds_brush);
+    render_target->DrawRectangle(layout_rect, layout_brush);
 
     for_each_child([render_target](WidgetBase* widget) {
         widget->render_debug_layout(render_target);
@@ -226,13 +223,9 @@ void WidgetBase::detach_render_target()
 }
 
 bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
-    if (m_layout.geometry == nullptr)
-        return false;
-
     BOOL result = false;
-    auto hr = m_layout.geometry->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
-    Logger.at(NAMEOF(hit_test)).at(NAMEOF(m_layout.geometry->FillContainsPoint)).log_error(hr);
-
+    auto hr = m_render_geometry->get()->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
+    Logger.at(NAMEOF(hit_test)).at(NAMEOF(ID2D1Geometry::FillContainsPoint)).log_error(hr);
     return result;
 }
 
@@ -241,7 +234,7 @@ void WidgetBase::RenderContentResource::initialize()
     if (is_valid()) return;
 
     m_widget->layout_bounds_resource()->initialize();
-    RenderContext context{ m_widget->render_target(), m_widget->render_bounds_resource()->get()};
+    RenderContext context{ m_widget->render_target(), m_widget->render_bounds_resource()->get() };
     initialize_with_context(context);
 
     if (Application::instance()->is_debug()) {
