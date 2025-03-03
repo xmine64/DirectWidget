@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <Windows.h>
+#include <d2d1.h>
 #include <d2d1helper.h>
 #include <dwrite.h>
 
@@ -18,25 +19,25 @@ using namespace Widgets;
 
 property_ptr<PCWSTR> ButtonWidget::TextProperty = make_property<PCWSTR>(L"Button");
 property_ptr<BOUNDS_F> ButtonWidget::PaddingProperty = make_property(BOUNDS_F{ 4, 4, 4, 4 });
-property_ptr<D2D1::ColorF> ButtonWidget::ForegroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
-property_ptr<D2D1::ColorF> ButtonWidget::StrokeColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
-property_ptr<D2D1::ColorF> ButtonWidget::BackgroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::LightGray);
-property_ptr<D2D1::ColorF> ButtonWidget::HoverColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::DimGray);
-property_ptr<D2D1::ColorF> ButtonWidget::PressedColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::DarkGray);
+property_ptr<D2D1_COLOR_F> ButtonWidget::ForegroundColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::Black));
+property_ptr<D2D1_COLOR_F> ButtonWidget::StrokeColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::Black));
+property_ptr<D2D1_COLOR_F> ButtonWidget::BackgroundColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::LightGray));
+property_ptr<D2D1_COLOR_F> ButtonWidget::HoverColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::DimGray));
+property_ptr<D2D1_COLOR_F> ButtonWidget::PressedColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::DarkGray));
 
 ButtonWidget::ButtonWidget()
 {
-    register_property(TextProperty, m_text);
-    register_property(PaddingProperty, m_padding);
-    register_property(ForegroundColorProperty, m_foreground_color);
-    register_property(StrokeColorProperty, m_stroke_color);
-    register_property(BackgroundColorProperty, m_background_color);
-    register_property(HoverColorProperty, m_hover_color);
-    register_property(PressedColorProperty, m_pressed_color);
+    register_dependency(TextProperty);
+    register_dependency(PaddingProperty);
+    register_dependency(ForegroundColorProperty);
+    register_dependency(StrokeColorProperty);
+    register_dependency(BackgroundColorProperty);
+    register_dependency(HoverColorProperty);
+    register_dependency(PressedColorProperty);
 
     m_box_widget = std::make_shared<BoxWidget>();
-    m_box_widget->set_horizontal_alignment(WIDGET_ALIGNMENT_STRETCH);
-    m_box_widget->set_vertical_alignment(WIDGET_ALIGNMENT_STRETCH);
+    m_box_widget->set_horizontal_alignment(WidgetAlignment::Stretch);
+    m_box_widget->set_vertical_alignment(WidgetAlignment::Stretch);
     add_child(m_box_widget);
 
     m_text_widget = std::make_shared<TextWidget>();
@@ -46,15 +47,15 @@ ButtonWidget::ButtonWidget()
 }
 
 void ButtonWidget::create_resources() {
-    m_text_widget->set_text(m_text);
-    m_text_widget->set_horizontal_alignment(WIDGET_ALIGNMENT_CENTER);
-    m_text_widget->set_vertical_alignment(WIDGET_ALIGNMENT_CENTER);
+    m_text_widget->set_text(text());
+    m_text_widget->set_horizontal_alignment(WidgetAlignment::Center);
+    m_text_widget->set_vertical_alignment(WidgetAlignment::Center);
     m_text_widget->set_font_size(14.0f);
-    m_text_widget->set_color(m_foreground_color);
-    m_text_widget->set_margin(m_padding);
+    m_text_widget->set_color(foreground_color());
+    m_text_widget->set_margin(padding());
 
-    m_box_widget->set_background_color(m_background_color);
-    m_box_widget->set_stroke_color(m_stroke_color);
+    m_box_widget->set_background_color(background_color());
+    m_box_widget->set_stroke_color(stroke_color());
 
     WidgetBase::create_resources();
 }

@@ -1,6 +1,7 @@
 // base_widget.cpp: BaseWidget implementation
 
 #include <memory>
+#include <unordered_map>
 
 #include <Windows.h>
 #include <d2d1.h>
@@ -9,85 +10,228 @@
 
 #include "foundation.hpp"
 #include "app.hpp"
+#include "element_base.hpp"
+#include "window.hpp"
 #include "widget.hpp"
+#include "dependency.hpp"
 #include "property.hpp"
 #include "resource.hpp"
+#include "interop.hpp"
 
 using namespace DirectWidget;
+using namespace DirectWidget::Interop;
 
 const LogContext WidgetBase::Logger{ NAMEOF(WidgetBase) };
 const LogContext RenderContext::Logger{ NAMEOF(RenderContext) };
 
+class WidgetBase::WidgetMeasureResource : public BasicTypeResource<SIZE_F> {
+protected:
+    bool initialize(const ElementBase* owner, SIZE_F& resource) override {
+        SIZE_F available_size{ WidgetBase::MaxSizeProperty->get_value(owner) };
+
+        auto& size = WidgetBase::SizeProperty->get_value(owner);
+        if (size.width > 0) {
+            available_size.width = min(available_size.width, size.width);
+        }
+
+        if (size.height > 0) {
+            available_size.height = min(available_size.height, size.height);
+        }
+
+        auto& margin = WidgetBase::MarginProperty->get_value(owner);
+        auto margin_width = margin.left + margin.right;
+        auto margin_height = margin.top + margin.bottom;
+
+        available_size.width = max(available_size.width - margin_width, 0);
+        available_size.height =max(available_size.height - margin_height, 0);
+
+        auto content_size = static_cast<const WidgetBase*>(owner)->measure(available_size);
+
+        resource.width = content_size.width + margin_width;
+        resource.height = content_size.height + margin_height;
+        return true;
+    }
+};
+
+class WidgetBase::WidgetRenderBoundsResource : public BasicTypeResource<BOUNDS_F> {
+protected:
+    bool initialize(const ElementBase* owner, BOUNDS_F& resource) override {
+        auto& layout = LayoutResource->get_or_initialize_resource(owner);
+        resource = layout.render_bounds();
+        return true;
+    }
+};
+
+class WidgetBase::WidgetRenderGeometryResource : public Interop::ComResource<ID2D1Geometry> {
+protected:
+    HRESULT initialize(const ElementBase* owner, com_ptr<ID2D1Geometry>& resource) {
+        auto& render_bounds = WidgetBase::RenderBoundsResource->get_or_initialize_resource(owner);
+        auto rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
+
+        auto& d2d = DirectWidget::Application::instance()->d2d();
+        auto hr = d2d->CreateRectangleGeometry(rect, &reinterpret_cast<ID2D1RectangleGeometry*&>(resource));
+        Logger.at(NAMEOF(m_render_geometry)).at(NAMEOF(ID2D1Factory::CreateRectangleGeometry)).fatal_exit(hr);
+        return hr;
+    }
+};
+
+class WidgetBase::WidgetLayoutResource : public Resource<LayoutContext> {
+public:
+    void register_owner(const ElementBase* owner) override {
+        ResourceBase::register_owner(owner);
+        m_resources[owner] = LayoutContext({ 0,0 }, { 0,0,0,0 }, { 0,0,0,0 });
+    }
+
+    void remove_owner(const ElementBase* owner) override {
+        ResourceBase::remove_owner(owner);
+        m_resources.erase(owner);
+    }
+
+    const LayoutContext& get_resource(const ElementBase* owner) const {
+        auto it = m_resources.find(owner);
+        if (it != m_resources.end()) {
+            return it->second;
+        }
+        return LayoutContext({ 0,0 }, { 0,0,0,0 }, { 0,0,0,0 });
+    }
+
+    bool initialize(const ElementBase* owner) override {
+        if (is_valid(owner) == true) return true;
+
+        auto& resource = m_resources[owner];
+        resource = LayoutContext(
+            WidgetBase::MeasureResource->get_or_initialize_resource(owner),
+            WidgetBase::ConstraintsProperty->get_value(owner),
+            WidgetBase::MarginProperty->get_value(owner),
+            resource.background_widget());
+        static_cast<const WidgetBase*>(owner)->layout(resource);
+        return true;
+    }
+
+    void initialize_with_context(const ElementBase* owner, const LayoutContext& context)
+    {
+        if (is_valid(owner) == true) return;
+
+        auto& resource = m_resources[owner];
+        resource = context;
+        static_cast<const WidgetBase*>(owner)->layout(resource);
+    }
+
+    void discard(const ElementBase* owner) override {}
+
+private:
+    std::unordered_map<const ElementBase*, LayoutContext> m_resources;
+};
+
+class WidgetBase::WidgetRenderContentResource : public ResourceBase {
+public:
+    bool initialize(const ElementBase* owner) override {
+        RenderContext context{
+            static_cast<const WidgetBase*>(owner)->render_target(),
+            WidgetBase::RenderBoundsResource->get_or_initialize_resource(owner)
+        };
+        initialize_with_context(owner, context);
+
+        // TODO:
+        // if (hr == D2DERR_RECREATE_TARGET)
+
+        return true;
+    }
+
+    void initialize_with_context(const ElementBase* owner, const RenderContext& render_context) {
+        auto& render_bounds = render_context.render_bounds();
+        if (render_bounds.right - render_bounds.left <= 0 ||
+            render_bounds.bottom - render_bounds.top <= 0)
+            return;
+
+        auto widget = static_cast<const WidgetBase*>(owner);
+
+        if (is_valid(owner) == false) {
+            auto& background_widget = m_background_widgets[owner];
+            if (background_widget != nullptr) {
+                auto background_context = render_context.create_subcontext(WidgetBase::RenderBoundsResource->get_or_initialize_resource(background_widget.get()));
+                initialize_with_context(background_widget.get(), background_context);
+            }
+
+            widget->render(render_context);
+            auto hr = render_context.render_target()->Flush();
+            Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
+
+            m_background_widgets[owner] = WidgetBase::LayoutResource->get_resource(owner).background_widget();
+
+            if (Application::instance()->is_debug()) {
+                static_cast<const WidgetBase*>(owner)->render_debug_layout(render_context.render_target());
+            }
+        }
+
+        widget->for_each_child([this, &render_context](WidgetBase* child) {
+            auto child_render_context = render_context.create_subcontext(WidgetBase::RenderBoundsResource->get_or_initialize_resource(child));
+            initialize_with_context(child, child_render_context);
+            });
+    }
+
+    void discard(const ElementBase* owner) override {
+        auto& background_widget = m_background_widgets[owner];
+        if (background_widget != nullptr) {
+            background_widget->discard_frame();
+        }
+    }
+
+private:
+    std::unordered_map<const ElementBase*, widget_ptr> m_background_widgets;
+};
+
+class WidgetBase::WidgetRenderTargetProperty : public PropertyBase {
+public:
+    void notify_change(ElementBase* owner) {
+        DependencyBase::notify_updated(owner, NotificationArgument(NotificationType::Updated, this));
+    }
+};
+
+//
+// Properties
+//
+
 property_ptr<SIZE_F> WidgetBase::SizeProperty = make_property(SIZE_F{ 0, 0 });
 property_ptr<BOUNDS_F> WidgetBase::MarginProperty = make_property(BOUNDS_F{ 0, 0, 0, 0 });
-property_ptr<WIDGET_ALIGNMENT> WidgetBase::VerticalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
-property_ptr<WIDGET_ALIGNMENT> WidgetBase::HorizontalAlignmentProperty = make_property(WIDGET_ALIGNMENT_CENTER);
+property_ptr<WidgetAlignment> WidgetBase::VerticalAlignmentProperty = make_property(WidgetAlignment::Center);
+property_ptr<WidgetAlignment> WidgetBase::HorizontalAlignmentProperty = make_property(WidgetAlignment::Center);
 
 property_ptr<SIZE_F> WidgetBase::MaxSizeProperty = make_property<SIZE_F>({ 0,0 });
 property_ptr<BOUNDS_F> WidgetBase::ConstraintsProperty = make_property<BOUNDS_F>({ 0,0,0,0 });
 
 property_base_ptr WidgetBase::RenderTargetProperty = std::make_shared<PropertyBase>();
 
+//
+// Resources
+//
+
+resource_ptr<SIZE_F> WidgetBase::MeasureResource = std::make_shared<WidgetMeasureResource>();
+resource_ptr<LayoutContext> WidgetBase::LayoutResource = std::make_shared<WidgetLayoutResource>();
+resource_ptr<BOUNDS_F> WidgetBase::RenderBoundsResource = std::make_shared<WidgetRenderBoundsResource>();
+Interop::com_resource_ptr<ID2D1Geometry> WidgetBase::RenderGeometryResource = std::make_shared<WidgetRenderGeometryResource>();
+
+resource_base_ptr WidgetBase::RenderContentResource = std::make_shared<WidgetRenderContentResource>();
+
+resource_ptr<float> WidgetBase::ScaleResource = std::make_shared<InheritedResource<float>>(Window::ScaleResource);
+
 WidgetBase::WidgetBase() {
-    register_property(SizeProperty, m_size);
-    register_property(MarginProperty, m_margin);
-    register_property(VerticalAlignmentProperty, m_vertical_alignment);
-    register_property(HorizontalAlignmentProperty, m_horizontal_alignment);
+    register_dependency(SizeProperty);
+    register_dependency(MarginProperty);
+    register_dependency(VerticalAlignmentProperty);
+    register_dependency(HorizontalAlignmentProperty);
 
-    register_property(MaxSizeProperty, m_max_size);
-    register_property(ConstraintsProperty, m_constraints);
+    register_dependency(MaxSizeProperty);
+    register_dependency(ConstraintsProperty);
 
-    m_measure = make_resource<SIZE_F>([this]() {
-        SIZE_F available_size{ maximum_size() };
+    register_dependency(RenderTargetProperty);
 
-        if (m_size.width > 0) {
-            available_size.width = min(available_size.width, m_size.width);
-        }
-
-        if (m_size.height > 0) {
-            available_size.height = min(available_size.height, m_size.height);
-        }
-
-        auto margin_width = m_margin.left + m_margin.right;
-        auto margin_height = m_margin.top + m_margin.bottom;
-
-        available_size.width -= margin_width;
-        available_size.height -= margin_height;
-
-        auto content_size = measure(available_size);
-
-        return SIZE_F{
-            content_size.width + margin_width,
-            content_size.height + margin_height
-        };
-        });
-    //m_measure->bind(MaxSizeProperty);
-    //m_measure->bind(MarginProperty);
-
-    m_layout = std::make_shared<LayoutResource>(this);
-    m_layout->bind(m_measure);
-    //m_layout->bind(ConstraintsProperty);
-    //m_layout->bind(MarginProperty);
-
-    m_render_bounds = make_resource<BOUNDS_F>([this]() {
-        return m_layout->get().render_bounds();
-        });
-    m_render_bounds->bind(m_layout);
-
-    m_render_geometry = make_resource<ID2D1Geometry>([this]() {
-        auto& render_bounds = m_render_bounds->get();
-        auto rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
-
-        auto& d2d = DirectWidget::Application::instance()->d2d();
-        com_ptr<ID2D1RectangleGeometry> result;
-        auto hr = d2d->CreateRectangleGeometry(rect, &result);
-        Logger.at(NAMEOF(m_render_geometry)).at(NAMEOF(ID2D1Factory::CreateRectangleGeometry)).fatal_exit(hr);
-        return result;
-        });
-    m_render_geometry->bind(m_layout);
-
-    m_render_content = std::make_shared<RenderContentResource>(this);
-    m_render_content->bind(m_layout);
+    register_dependency(MeasureResource);
+    register_dependency(LayoutResource);
+    register_dependency(RenderBoundsResource);
+    register_dependency(RenderGeometryResource);
+    register_dependency(RenderContentResource);
+    register_dependency(ScaleResource);
 }
 
 void WidgetBase::layout(LayoutContext& context) const
@@ -98,13 +242,13 @@ void WidgetBase::layout(LayoutContext& context) const
     auto& constraints = context.constraints();
     auto& layout_bounds = context.layout_bounds();
 
-    switch (m_horizontal_alignment) {
-    case WIDGET_ALIGNMENT_START:
+    switch (horizontal_alignment()) {
+    case WidgetAlignment::Start:
         layout_bounds.left = constraints.left;
         layout_bounds.right = layout_bounds.left + size.width;
         break;
 
-    case WIDGET_ALIGNMENT_CENTER:
+    case WidgetAlignment::Center:
     {
         auto free_width = (constraints.right - constraints.left) - size.width;
         layout_bounds.left = constraints.left + max(0.0f, free_width / 2);
@@ -112,24 +256,24 @@ void WidgetBase::layout(LayoutContext& context) const
     }
     break;
 
-    case WIDGET_ALIGNMENT_STRETCH:
+    case WidgetAlignment::Stretch:
         layout_bounds.left = constraints.left;
         layout_bounds.right = constraints.right;
         break;
 
-    case WIDGET_ALIGNMENT_END:
+    case WidgetAlignment::End:
         layout_bounds.right = constraints.right;
         layout_bounds.left = layout_bounds.right - size.width;
         break;
     }
 
-    switch (m_vertical_alignment) {
-    case WIDGET_ALIGNMENT_START:
+    switch (vertical_alignment()) {
+    case WidgetAlignment::Start:
         layout_bounds.top = constraints.top;
         layout_bounds.bottom = layout_bounds.top + size.height;
         break;
 
-    case WIDGET_ALIGNMENT_CENTER:
+    case WidgetAlignment::Center:
     {
         auto free_height = (constraints.bottom - constraints.top) - size.height;
         layout_bounds.top = constraints.top + max(0.0f, free_height / 2);
@@ -137,12 +281,12 @@ void WidgetBase::layout(LayoutContext& context) const
     }
     break;
 
-    case WIDGET_ALIGNMENT_STRETCH:
+    case WidgetAlignment::Stretch:
         layout_bounds.top = constraints.top;
         layout_bounds.bottom = constraints.bottom;
         break;
 
-    case WIDGET_ALIGNMENT_END:
+    case WidgetAlignment::End:
         layout_bounds.bottom = constraints.bottom;
         layout_bounds.top = layout_bounds.bottom - size.height;
         break;
@@ -159,8 +303,8 @@ void WidgetBase::render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_ta
     hr = render_target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &layout_brush);
     Logger.at(NAMEOF(render_debug_layout)).at(NAMEOF(render_target->CreateSolidColorBrush)).fatal_exit(hr);
 
-    auto& layout_bounds = m_layout->get().layout_bounds();
-    auto& render_bounds = m_render_bounds->get();
+    auto& layout_bounds = LayoutResource->get_resource(this).layout_bounds();
+    auto& render_bounds = RenderBoundsResource->get_resource(this);
 
     auto layout_rect = D2D1::RectF(layout_bounds.left, layout_bounds.top, layout_bounds.right, layout_bounds.bottom);
     auto render_rect = D2D1::RectF(render_bounds.left, render_bounds.top, render_bounds.right, render_bounds.bottom);
@@ -183,7 +327,7 @@ void WidgetBase::attach_render_target(const com_ptr<ID2D1RenderTarget>& render_t
         widget->attach_render_target(render_target);
         });
 
-    notify_change(RenderTargetProperty);
+    static_pointer_cast<WidgetRenderTargetProperty>(RenderTargetProperty)->notify_change(this);
 }
 
 void WidgetBase::detach_render_target()
@@ -194,83 +338,18 @@ void WidgetBase::detach_render_target()
         widget->detach_render_target();
         });
 
-    notify_change(RenderTargetProperty);
+    static_pointer_cast<WidgetRenderTargetProperty>(RenderTargetProperty)->notify_change(this);
 }
 
-bool WidgetBase::hit_test(D2D1_POINT_2F point) const {
+bool WidgetBase::hit_test(D2D1_POINT_2F point) {
     BOOL result = false;
-    auto hr = m_render_geometry->get()->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
+    auto hr = WidgetBase::RenderGeometryResource->get_or_initialize_resource(this)->FillContainsPoint(point, D2D1::Matrix3x2F::Identity(), &result);
     Logger.at(NAMEOF(hit_test)).at(NAMEOF(ID2D1Geometry::FillContainsPoint)).log_error(hr);
     return result;
 }
 
-void WidgetBase::LayoutResource::initialize()
-{
-    if (is_valid()) return;
-
-    m_context = LayoutContext(m_owner->m_measure->get(), m_owner->m_constraints, m_owner->m_margin, m_context.background_widget());
-    m_owner->layout(m_context);
-    mark_valid();
-}
-
-void WidgetBase::LayoutResource::initialize_with_context(const LayoutContext& context)
-{
-    if (is_valid()) return;
-
-    m_context = context;
-    m_owner->layout(m_context);
-    mark_valid();
-}
-
 void LayoutContext::layout_child(const widget_ptr& child, const BOUNDS_F& constraints, const widget_ptr& background) const {
     child->set_constraints(constraints);
-    auto child_layout = static_pointer_cast<WidgetBase::LayoutResource>(child->layout_resource());
-    auto child_context = create_subcontext(child->measure_resource()->get(), child->constraints(), child->margin(), background);
-    child_layout->initialize_with_context(child_context);
-}
-
-void WidgetBase::RenderContentResource::initialize()
-{
-    if (is_valid()) return;
-
-    RenderContext context{ m_widget->render_target(), m_widget->render_bounds_resource()->get() };
-    initialize_with_context(context);
-
-    if (Application::instance()->is_debug()) {
-        m_widget->render_debug_layout(context.render_target());
-    }
-
-    // TODO:
-    // if (hr == D2DERR_RECREATE_TARGET)
-}
-
-void WidgetBase::RenderContentResource::initialize_with_context(const RenderContext& render_context)
-{
-    if (is_valid()) return;
-
-    if (m_background_widget != nullptr) {
-        auto background_context = render_context.create_subcontext(m_background_widget->render_bounds_resource()->get());
-        auto background_content = static_pointer_cast<RenderContentResource>(m_background_widget->render_content());
-        background_content->initialize_with_context(background_context);
-    }
-
-    m_widget->render(render_context);
-    auto hr = render_context.render_target()->Flush();
-    Logger.at(NAMEOF(WidgetBase::RenderContentResource::initialize_with_context)).at(NAMEOF(ID2D1RenderTarget::Flush)).log_error(hr);
-
-    m_widget->for_each_child([&render_context](WidgetBase* child) {
-        auto child_render_context = render_context.create_subcontext(child->render_bounds_resource()->get());
-        auto child_render_content = static_pointer_cast<RenderContentResource>(child->render_content());
-        child_render_content->initialize_with_context(child_render_context);
-        });
-
-    m_background_widget = m_widget->m_layout->get().background_widget();
-    mark_valid();
-}
-
-void WidgetBase::RenderContentResource::discard() { 
-    if (m_background_widget != nullptr) {
-        m_background_widget->render_content()->discard();
-    }
-    mark_invalid();
+    auto child_context = create_subcontext(WidgetBase::MeasureResource->get_or_initialize_resource(child.get()), child->constraints(), child->margin(), background);
+    static_pointer_cast<WidgetBase::WidgetLayoutResource>(WidgetBase::LayoutResource)->initialize_with_context(child.get(), child_context);
 }

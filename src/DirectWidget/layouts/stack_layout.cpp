@@ -17,6 +17,8 @@ void StackLayout::layout(LayoutContext& context) const
 
     BOUNDS_F available_bounds{ context.render_bounds() };
 
+    auto& orientation = get_property(OrientationProperty);
+
     for (auto& node : m_nodes) {
         auto node_constraints = BOUNDS_F{
             available_bounds.left,
@@ -24,7 +26,7 @@ void StackLayout::layout(LayoutContext& context) const
             available_bounds.left + node->layout_size.width,
             available_bounds.top + node->layout_size.height
         };
-        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
+        if (orientation == STACK_LAYOUT_HORIZONTAL) {
             node_constraints.bottom = available_bounds.bottom;
         }
         else {
@@ -32,7 +34,7 @@ void StackLayout::layout(LayoutContext& context) const
         }
         context.layout_child(node->widget, node_constraints);
         
-        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
+        if (orientation == STACK_LAYOUT_HORIZONTAL) {
             available_bounds.left += node->layout_size.width;
         }
         else {
@@ -43,38 +45,40 @@ void StackLayout::layout(LayoutContext& context) const
 
 SIZE_F StackLayout::measure(const SIZE_F& available_size) const
 {
-    auto flex_size = m_orientation == STACK_LAYOUT_HORIZONTAL
+    auto& orientation = get_property(OrientationProperty);
+
+    auto flex_size = orientation == STACK_LAYOUT_HORIZONTAL
         ? available_size.width
         : available_size.height;
     auto flex_count = 0;
 
     // First pass: Measure non-stretch widgets and determine flex count
     for (auto& node : m_nodes) {
-        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
-            if (node->widget->horizontal_alignment() == WIDGET_ALIGNMENT_STRETCH) {
+        if (orientation == STACK_LAYOUT_HORIZONTAL) {
+            if (node->widget->horizontal_alignment() == WidgetAlignment::Stretch) {
                 flex_count++;
             }
             else {
                 node->widget->set_maximum_size(SIZE_F{ flex_size, available_size.height });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.width = node->measure.width;
                 flex_size -= node->layout_size.width;
             }
         }
         else {
-            if (node->widget->vertical_alignment() == WIDGET_ALIGNMENT_STRETCH) {
+            if (node->widget->vertical_alignment() == WidgetAlignment::Stretch) {
                 flex_count++;
             }
             else {
                 node->widget->set_maximum_size(SIZE_F{ available_size.width, flex_size });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.height = node->measure.height;
                 flex_size -= node->layout_size.height;
             }
         }
     }
 
-    auto non_flex_size = (m_orientation == STACK_LAYOUT_HORIZONTAL
+    auto non_flex_size = (orientation == STACK_LAYOUT_HORIZONTAL
         ? available_size.width
         : available_size.height) - flex_size;
 
@@ -86,15 +90,15 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
 
     // Second pass: Assign sizes to stretch widgets and compute total size
     for (auto& node : m_nodes) {
-        if (m_orientation == STACK_LAYOUT_HORIZONTAL) {
-            if (node->widget->horizontal_alignment() == WIDGET_ALIGNMENT_STRETCH) {
+        if (orientation == STACK_LAYOUT_HORIZONTAL) {
+            if (node->widget->horizontal_alignment() == WidgetAlignment::Stretch) {
                 node->widget->set_maximum_size(SIZE_F{ flex_size, available_size.height });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.width = flex_size;
             }
             else {
                 node->widget->set_maximum_size(SIZE_F{ non_flex_size, available_size.height });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.width = node->measure.width;
             }
 
@@ -104,14 +108,14 @@ SIZE_F StackLayout::measure(const SIZE_F& available_size) const
             sum.height = max(sum.height, node->layout_size.height);
         }
         else {
-            if (node->widget->vertical_alignment() == WIDGET_ALIGNMENT_STRETCH) {
+            if (node->widget->vertical_alignment() == WidgetAlignment::Stretch) {
                 node->widget->set_maximum_size(SIZE_F{ available_size.width, flex_size });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.height = flex_size;
             }
             else {
                 node->widget->set_maximum_size(SIZE_F{ available_size.width, non_flex_size });
-                node->measure = node->widget->measure_resource()->get();
+                node->measure = WidgetBase::MeasureResource->get_or_initialize_resource(node->widget.get());
                 node->layout_size.height = node->measure.height;
             }
 

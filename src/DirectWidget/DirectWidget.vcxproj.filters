@@ -54,6 +54,12 @@
     <ClCompile Include="core\foundation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="core\interop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\dependency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\widget.hpp">
@@ -87,6 +93,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\element_base.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\interop.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\dependency.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

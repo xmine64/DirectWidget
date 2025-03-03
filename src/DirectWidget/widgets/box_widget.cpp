@@ -1,12 +1,17 @@
 // box_widget.cpp: Box widget implementation
 
+#include <memory>
+
+#include <Windows.h>
 #include <comdef.h>
 #include <d2d1.h>
 #include <d2d1helper.h>
 
 #include "../core/foundation.hpp"
+#include "../core/element_base.hpp"
 #include "../core/property.hpp"
 #include "../core/resource.hpp"
+#include "../core/interop.hpp"
 #include "../core/widget.hpp"
 #include "box_widget.hpp"
 
@@ -15,36 +20,27 @@ using namespace Widgets;
 
 const LogContext BoxWidget::m_log{ NAMEOF(BoxWidget) };
 
-property_ptr<D2D1::ColorF> BoxWidget::BackgroundColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::White);
-property_ptr<D2D1::ColorF> BoxWidget::StrokeColorProperty = make_property<D2D1::ColorF>(D2D1::ColorF::Black);
+// Properties
+
+property_ptr<D2D1_COLOR_F> BoxWidget::BackgroundColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::White));
+property_ptr<D2D1_COLOR_F> BoxWidget::StrokeColorProperty = make_property<D2D1_COLOR_F>(D2D1::ColorF(D2D1::ColorF::Black));
 property_ptr<float> BoxWidget::StrokeWidthProperty = make_property<float>(1.0f);
 
+// Resources
+
+Interop::com_resource_ptr<ID2D1SolidColorBrush> BoxWidget::FillBrushResource = 
+    std::make_shared<Interop::SolidColorBrushResource>(BackgroundColorProperty);
+
+Interop::com_resource_ptr<ID2D1SolidColorBrush> BoxWidget::StrokeBrushResource = 
+    std::make_shared<Interop::SolidColorBrushResource>(StrokeColorProperty);
+
 BoxWidget::BoxWidget() {
-    register_property(BackgroundColorProperty, m_background_color);
-    register_property(StrokeColorProperty, m_stroke_color);
-    register_property(StrokeWidthProperty, m_stroke_width);
+    register_dependency(BackgroundColorProperty);
+    register_dependency(StrokeColorProperty);
+    register_dependency(StrokeWidthProperty);
 
-    //render_content()->bind(StrokeWidthProperty);
-
-    m_background_brush = make_resource<ID2D1Brush>([this]() {
-        com_ptr<ID2D1SolidColorBrush> m_brush;
-        auto hr = render_target()->CreateSolidColorBrush(m_background_color, &m_brush);
-        m_log.at(NAMEOF(m_background_brush)).fatal_exit(hr);
-        return m_brush;
-        });
-    //m_background_brush->bind(RenderTargetProperty);
-    //m_background_brush->bind(BackgroundColorProperty);
-    render_content()->bind(m_background_brush);
-
-    m_stroke_brush = make_resource<ID2D1Brush>([this]() {
-        com_ptr<ID2D1SolidColorBrush> m_brush;
-        auto hr = render_target()->CreateSolidColorBrush(m_stroke_color, &m_brush);
-        m_log.at(NAMEOF(m_stroke_brush)).fatal_exit(hr);
-        return m_brush;
-        });
-    //m_stroke_brush->bind(RenderTargetProperty);
-    //m_stroke_brush->bind(StrokeColorProperty);
-    render_content()->bind(m_stroke_brush);
+    register_dependency(FillBrushResource);
+    register_dependency(StrokeBrushResource);
 }
 
 void BoxWidget::render(const RenderContext& context) const
@@ -55,9 +51,12 @@ void BoxWidget::render(const RenderContext& context) const
         context.render_bounds().right,
         context.render_bounds().bottom
     );
-    context.render_target()->FillRectangle(box, m_background_brush->get());
+    auto& fill_brush = FillBrushResource->get_or_initialize_resource(this);
+    context.render_target()->FillRectangle(box, fill_brush);
 
-    if (m_stroke_width > 0.0f) {
-        context.render_target()->DrawRectangle(box, m_stroke_brush->get(), m_stroke_width);
+    auto width = stroke_width();
+    auto& stroke_brush = StrokeBrushResource->get_or_initialize_resource(this);
+    if (width > 0.0f) {
+        context.render_target()->DrawRectangle(box, stroke_brush, width);
     }
 }

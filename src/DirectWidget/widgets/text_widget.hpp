@@ -9,9 +9,7 @@
 #include <dwrite.h>
 
 #include "../core/foundation.hpp"
-#include "../core/app.hpp"
-#include "../core/property.hpp"
-#include "../core/resource.hpp"
+#include "../core/interop.hpp"
 #include "../core/widget.hpp"
 
 namespace DirectWidget {
@@ -20,37 +18,36 @@ namespace DirectWidget {
         class TextWidget : public WidgetBase
         {
         public:
-
             // properties
 
             static property_ptr<PCWSTR> TextProperty;
             static property_ptr<PCWSTR> FontFamilyProperty;
             static property_ptr<float> FontSizeProperty;
-            static property_ptr<D2D1::ColorF> ColorProperty;
+            static property_ptr<D2D1_COLOR_F> ColorProperty;
             static property_ptr<DWRITE_FONT_WEIGHT> FontWeightProperty;
             static property_ptr<DWRITE_TEXT_ALIGNMENT> TextAlignmentProperty;
             static property_ptr<DWRITE_PARAGRAPH_ALIGNMENT> ParagraphAlignmentProperty;
 
             const PCWSTR& text() const { return get_property(TextProperty); }
-            void set_text(PCWSTR text) { set_property(TextProperty, text); }
+            void set_text(const PCWSTR& text) { set_property(TextProperty, text); }
             
             const PCWSTR& font_family() const { return get_property(FontFamilyProperty); }
-            void set_font_family(PCWSTR font_family) { set_property(FontFamilyProperty, font_family); }
+            void set_font_family(const PCWSTR& font_family) { set_property(FontFamilyProperty, font_family); }
             
             float font_size() const { return get_property(FontSizeProperty); }
             void set_font_size(float size) { set_property(FontSizeProperty, size); }
             
-            D2D1::ColorF color() const { return get_property(ColorProperty); }
-            void set_color(D2D1::ColorF color) { set_property(ColorProperty, color); }
+            const D2D1_COLOR_F& color() const { return get_property(ColorProperty); }
+            void set_color(const D2D1_COLOR_F& color) { set_property(ColorProperty, color); }
             
             DWRITE_FONT_WEIGHT font_weight() const { return get_property(FontWeightProperty); }
-            void set_font_weight(DWRITE_FONT_WEIGHT weight) { set_property(FontWeightProperty, weight); }
+            void set_font_weight(const DWRITE_FONT_WEIGHT& weight) { set_property(FontWeightProperty, weight); }
             
             DWRITE_TEXT_ALIGNMENT text_alignment() const { return get_property(TextAlignmentProperty); }
-            void set_text_alignment(DWRITE_TEXT_ALIGNMENT alignment) { set_property(TextAlignmentProperty, alignment); }
+            void set_text_alignment(const DWRITE_TEXT_ALIGNMENT& alignment) { set_property(TextAlignmentProperty, alignment); }
             
             DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment() const { return get_property(ParagraphAlignmentProperty); }
-            void set_paragraph_alignment(DWRITE_PARAGRAPH_ALIGNMENT alignment) { set_property(ParagraphAlignmentProperty, alignment); }
+            void set_paragraph_alignment(const DWRITE_PARAGRAPH_ALIGNMENT& alignment) { set_property(ParagraphAlignmentProperty, alignment); }
 
             TextWidget();
 
@@ -59,32 +56,17 @@ namespace DirectWidget {
             SIZE_F measure(const SIZE_F& available_size) const override;
 
         protected:
-
             void render(const RenderContext& context) const override;
 
         private:
-
             static const LogContext Logger;
 
-            PCWSTR m_text{};
-            PCWSTR m_font_family = L"Segoe UI";
-            float m_size = 12.0;
-            D2D1::ColorF m_color = D2D1::ColorF(D2D1::ColorF::Black);
-            DWRITE_FONT_WEIGHT m_weight = DWRITE_FONT_WEIGHT_NORMAL;
-            DWRITE_TEXT_ALIGNMENT m_alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
-            DWRITE_PARAGRAPH_ALIGNMENT m_vertical_alignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+            static Interop::com_resource_ptr<ID2D1SolidColorBrush> TextFillResource;
+            static Interop::com_resource_ptr<IDWriteTextFormat> TextFormatResource;
+            static Interop::com_resource_ptr<IDWriteTextLayout> TextLayoutResource;
 
-            com_resource_ptr<ID2D1Brush> m_text_fill;
-            com_resource_ptr<IDWriteTextFormat> m_text_format;
-            com_resource_ptr<IDWriteTextLayout> m_text_layout;
-
-            class TextLayoutUpdater : public ResourceListenerBase {
-            public:
-                TextLayoutUpdater(TextWidget* owner) : m_owner(owner) {}
-                void on_resource_initialized(ResourceBase* resource) override;
-            private:
-                TextWidget* m_owner;
-            };
+            class DWriteTextFormatResource;
+            class DWriteTextLayoutResource;
         };
 
     }

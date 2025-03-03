@@ -41,8 +41,8 @@ namespace DirectWidget {
 
         int run_message_loop(Window& main_window, int nCmdShow);
 
-        const com_ptr<ID2D1Factory>& d2d() const { return m_d2d; }
-        const com_ptr<IDWriteFactory>& dwrite() const { return m_dwrite; }
+        const Interop::com_ptr<ID2D1Factory>& d2d() const { return m_d2d; }
+        const Interop::com_ptr<IDWriteFactory>& dwrite() const { return m_dwrite; }
 
         void enable_debug() { m_is_debug = true; }
         bool is_debug() const { return m_is_debug; }
@@ -51,8 +51,8 @@ namespace DirectWidget {
 
         Application() {}
 
-        com_ptr<ID2D1Factory> m_d2d = nullptr;
-        com_ptr<IDWriteFactory> m_dwrite = nullptr;
+        Interop::com_ptr<ID2D1Factory> m_d2d = nullptr;
+        Interop::com_ptr<IDWriteFactory> m_dwrite = nullptr;
 
         bool m_is_debug = false;
 

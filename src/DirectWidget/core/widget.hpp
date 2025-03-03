@@ -1,7 +1,7 @@
+#pragma once
+
 // base_widget.hpp: WidgetBase definition
 // WidgetBase provides abstraction for all other widgets
-
-#pragma once
 
 // Standard headers
 
@@ -17,6 +17,7 @@
 // Local headers
 
 #include "foundation.hpp"
+#include "interop.hpp"
 #include "element_base.hpp"
 #include "property.hpp"
 #include "resource.hpp"
@@ -28,13 +29,16 @@ namespace DirectWidget {
 
     class LayoutContext {
     public:
+        LayoutContext() : LayoutContext({ 0,0 }, { 0,0,0,0 }, { 0,0,0,0 }) {}
+
         LayoutContext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin, const widget_ptr& background_widget) :
             m_measure(measure), m_constraints(constraints), m_margin(margin), m_background_widget(background_widget) {
             m_layout_bounds = constraints;
         }
-        
+
         LayoutContext(const SIZE_F& measure, const BOUNDS_F& constraints, const BOUNDS_F& margin) :
-            LayoutContext(measure, constraints, margin, nullptr) { }
+            LayoutContext(measure, constraints, margin, nullptr) {
+        }
 
         void layout_child(const widget_ptr& child, const BOUNDS_F& constraints) const {
             layout_child(child, constraints, m_background_widget);
@@ -57,8 +61,8 @@ namespace DirectWidget {
 
         const BOUNDS_F& layout_bounds() const { return m_layout_bounds; }
 
-        BOUNDS_F render_bounds() const { 
-            return { 
+        BOUNDS_F render_bounds() const {
+            return {
                 m_layout_bounds.left + m_margin.left,
                 m_layout_bounds.top + m_margin.top,
                 m_layout_bounds.right - m_margin.right,
@@ -76,7 +80,7 @@ namespace DirectWidget {
 
     class RenderContext {
     public:
-        RenderContext(const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
+        RenderContext(const Interop::com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
             : RenderContext(true, render_target, render_bounds) {
 
         }
@@ -102,12 +106,12 @@ namespace DirectWidget {
         }
 
         const BOUNDS_F& render_bounds() const { return m_render_bounds; }
-        const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
+        const Interop::com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
 
     private:
         static const LogContext Logger;
 
-        RenderContext(bool is_root, const com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
+        RenderContext(bool is_root, const Interop::com_ptr<ID2D1RenderTarget>& render_target, const BOUNDS_F& render_bounds)
             : m_is_root(is_root), m_render_target(render_target), m_render_bounds(render_bounds) {
             if (is_root) {
                 m_render_target->BeginDraw();
@@ -117,27 +121,26 @@ namespace DirectWidget {
         }
 
         bool m_is_root;
-        com_ptr<ID2D1RenderTarget> m_render_target;
+        Interop::com_ptr<ID2D1RenderTarget> m_render_target;
         BOUNDS_F m_render_bounds;
     };
 
-    enum WIDGET_ALIGNMENT {
-        WIDGET_ALIGNMENT_START,
-        WIDGET_ALIGNMENT_CENTER,
-        WIDGET_ALIGNMENT_END,
-        WIDGET_ALIGNMENT_STRETCH,
+    enum class WidgetAlignment {
+        Start,
+        Center,
+        End,
+        Stretch,
     };
 
     class WidgetBase : public ElementBase
     {
     public:
-
         // properties
 
         static property_ptr<SIZE_F> SizeProperty;
         static property_ptr<BOUNDS_F> MarginProperty;
-        static property_ptr<WIDGET_ALIGNMENT> VerticalAlignmentProperty;
-        static property_ptr<WIDGET_ALIGNMENT> HorizontalAlignmentProperty;
+        static property_ptr<WidgetAlignment> VerticalAlignmentProperty;
+        static property_ptr<WidgetAlignment> HorizontalAlignmentProperty;
 
         static property_ptr<SIZE_F> MaxSizeProperty;
         static property_ptr<BOUNDS_F> ConstraintsProperty;
@@ -148,11 +151,11 @@ namespace DirectWidget {
         BOUNDS_F margin() const { return get_property<BOUNDS_F>(MarginProperty); }
         void set_margin(const BOUNDS_F& margin) { set_property<BOUNDS_F>(MarginProperty, margin); }
 
-        WIDGET_ALIGNMENT vertical_alignment() const { return get_property<WIDGET_ALIGNMENT>(VerticalAlignmentProperty); }
-        void set_vertical_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(VerticalAlignmentProperty, alignment); }
+        WidgetAlignment vertical_alignment() const { return get_property<WidgetAlignment>(VerticalAlignmentProperty); }
+        void set_vertical_alignment(WidgetAlignment alignment) { set_property<WidgetAlignment>(VerticalAlignmentProperty, alignment); }
 
-        WIDGET_ALIGNMENT horizontal_alignment() const { return get_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty); }
-        void set_horizontal_alignment(WIDGET_ALIGNMENT alignment) { set_property<WIDGET_ALIGNMENT>(HorizontalAlignmentProperty, alignment); }
+        WidgetAlignment horizontal_alignment() const { return get_property<WidgetAlignment>(HorizontalAlignmentProperty); }
+        void set_horizontal_alignment(WidgetAlignment alignment) { set_property<WidgetAlignment>(HorizontalAlignmentProperty, alignment); }
 
         const SIZE_F& maximum_size() const { return get_property<SIZE_F>(MaxSizeProperty); }
         void set_maximum_size(const SIZE_F& maximum_size) { set_property(MaxSizeProperty, maximum_size); }
@@ -162,50 +165,54 @@ namespace DirectWidget {
 
         // notification properties
 
-        /// <summary>
-        /// RenderTargetProperty is a notification property that is used to notify the widget that the render target has changed.
-        /// </summary>
         static property_base_ptr RenderTargetProperty;
+
+        // resources
+
+        static resource_ptr<SIZE_F> MeasureResource;
+        static resource_ptr<LayoutContext> LayoutResource;
+        static resource_ptr<BOUNDS_F> RenderBoundsResource;
+        static Interop::com_resource_ptr<ID2D1Geometry> RenderGeometryResource;
+
+        static resource_base_ptr RenderContentResource;
+
+        static resource_ptr<float> ScaleResource;
 
         // layout
 
-        const resource_ptr<SIZE_F>& measure_resource() const { return m_measure; }
-        const resource_ptr<LayoutContext>& layout_resource() const { return m_layout; }
-        const resource_ptr<BOUNDS_F>& render_bounds_resource() const { return m_render_bounds; }
-
-        void render_debug_layout(const com_ptr<ID2D1RenderTarget>& render_target) const;
+        void render_debug_layout(const Interop::com_ptr<ID2D1RenderTarget>& render_target) const;
 
         // rendering
 
-        void attach_render_target(const com_ptr<ID2D1RenderTarget>& render_target);
+        void attach_render_target(const Interop::com_ptr<ID2D1RenderTarget>& render_target);
         void detach_render_target();
-        const resource_base_ptr& render_content() const { return m_render_content; }
 
         virtual void create_resources() { for_each_child([](WidgetBase* widget) { widget->create_resources(); }); }
         virtual void discard_resources() { for_each_child([](WidgetBase* widget) { widget->discard_resources(); }); }
 
-        const com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
+        const Interop::com_ptr<ID2D1RenderTarget>& render_target() const { return m_render_target; }
+
+        void issue_frame() { RenderContentResource->initialize_for(this); }
+        void discard_frame() { 
+            RenderContentResource->invalidate_for(this);
+            for_each_child([](WidgetBase* child) {
+                RenderContentResource->invalidate_for(child);
+                });
+        }
 
         // interaction
 
-        void attach_scale(const resource_ptr<float>& scale) {
-            m_scale = scale;
-            for_each_child([&scale](WidgetBase* child) {
-                child->attach_scale(scale);
-                });
-        }
-        
-        D2D1_POINT_2F pixel_to_point(int x, int y) const {
-            auto& scale = m_scale->get();
+        D2D1_POINT_2F pixel_to_point(int x, int y) {
+            auto& scale = ScaleResource->get_or_initialize_resource(this);
             return D2D1::Point2F(static_cast<float>(x) / scale, static_cast<float>(y) / scale);
         }
 
-        D2D1_POINT_2U point_to_pixel(D2D1_POINT_2F point) const {
-            auto& scale = m_scale->get();
+        D2D1_POINT_2U point_to_pixel(D2D1_POINT_2F point) {
+            auto& scale = ScaleResource->get_or_initialize_resource(this);
             return D2D1::Point2U(static_cast<UINT>(point.x * scale), static_cast<UINT>(point.y * scale));
         }
 
-        bool hit_test(D2D1_POINT_2F point) const;
+        bool hit_test(D2D1_POINT_2F point);
 
         virtual bool handle_pointer_hover(D2D1_POINT_2F point) { return false; }
         virtual bool handle_pointer_press(D2D1_POINT_2F point) { return false; }
@@ -238,50 +245,14 @@ namespace DirectWidget {
     private:
         static const LogContext Logger;
 
-        SIZE_F m_max_size;
-        resource_ptr<SIZE_F> m_measure;
-        
-        BOUNDS_F m_constraints;
-        resource_ptr<LayoutContext> m_layout;
-        resource_ptr<BOUNDS_F> m_render_bounds;
-        com_resource_ptr<ID2D1Geometry> m_render_geometry;
+        Interop::com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
 
-        resource_ptr<float> m_scale;
-
-        com_ptr<ID2D1RenderTarget> m_render_target = nullptr;
-        resource_base_ptr m_render_content;
-
-        SIZE_F m_size;
-        BOUNDS_F m_margin;
-        WIDGET_ALIGNMENT m_vertical_alignment;
-        WIDGET_ALIGNMENT m_horizontal_alignment;
-        
-        class LayoutResource : public TypedResourceBase<LayoutContext> {
-        public:
-            LayoutResource(WidgetBase* owner) : m_owner(owner), m_context({ 0,0 }, { 0,0,0,0 }, { 0,0,0,0 }) { }
-
-            void initialize() override;
-            void initialize_with_context(const LayoutContext& context);
-            void discard() override { mark_invalid(); }
-
-        protected:
-            const LayoutContext& get_internal() const { return m_context; }
-
-        private:
-            WidgetBase* m_owner;
-            LayoutContext m_context;
-        };
-
-        class RenderContentResource : public ResourceBase {
-        public:
-            RenderContentResource(WidgetBase* widget) : m_widget(widget) {}
-            void initialize() override;
-            void initialize_with_context(const RenderContext& render_context);
-            void discard() override;
-        private:
-            WidgetBase* m_widget;
-            widget_ptr m_background_widget;
-        };
+        class WidgetMeasureResource;
+        class WidgetLayoutResource;
+        class WidgetRenderBoundsResource;
+        class WidgetRenderGeometryResource;
+        class WidgetRenderContentResource;
+        class WidgetRenderTargetProperty;
 
         friend LayoutContext;
     };

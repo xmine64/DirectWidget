@@ -14,13 +14,24 @@ using namespace Widgets;
 
 collection_property_ptr<std::shared_ptr<WidgetBase>> CompositeWidget::ChildrenProperty = make_collection<std::shared_ptr<WidgetBase>>();
 
+void CompositeWidget::add_child(std::shared_ptr<WidgetBase> widget) {
+    add_to_collection(ChildrenProperty, widget);
+    register_child(widget);
+}
+
+void CompositeWidget::remove_child(std::shared_ptr<WidgetBase> widget) {
+    remove_from_collection(ChildrenProperty, widget);
+    detach_child(widget);
+}
+
 SIZE_F CompositeWidget::measure(const SIZE_F& available_size) const
 {
     auto result = WidgetBase::measure(available_size);
 
-    for (auto& child : m_children) {
+    auto& children = ChildrenProperty->get_values(this);
+    for (auto& child : children) {
         child->set_maximum_size(available_size);
-        auto size = child->measure_resource()->get();
+        auto& size = MeasureResource->get_or_initialize_resource(child.get());
         result.width = max(result.width, size.width);
         result.height = max(result.height, size.height);
     }
@@ -28,23 +39,12 @@ SIZE_F CompositeWidget::measure(const SIZE_F& available_size) const
     return result;
 }
 
-void CompositeWidget::add_child(std::shared_ptr<WidgetBase> widget) { 
-    add_to_collection(ChildrenProperty, widget);
-    widget->render_content()->bind(render_content());
-    render_content()->bind(widget->render_content());
-}
-
-void CompositeWidget::remove_child(std::shared_ptr<WidgetBase> widget) { 
-    remove_from_collection(ChildrenProperty, widget);
-    widget->render_content()->unbind(render_content());
-    render_content()->unbind(widget->render_content());
-}
-
 void CompositeWidget::layout(LayoutContext& context) const {
     WidgetBase::layout(context);
 
+    auto& children = ChildrenProperty->get_values(this);
     widget_ptr previous_child;
-    for (auto& child : m_children) {
+    for (auto& child : children) {
         context.layout_child(child, context.render_bounds(), previous_child);
         previous_child = child;
     }
@@ -52,7 +52,8 @@ void CompositeWidget::layout(LayoutContext& context) const {
 
 bool CompositeWidget::handle_pointer_hover(D2D1_POINT_2F point)
 {
-    for (auto& child : m_children)
+    auto& children = ChildrenProperty->get_values(this);
+    for (auto& child : children)
     {
         if (child->hit_test(point))
         {
@@ -67,7 +68,8 @@ bool CompositeWidget::handle_pointer_hover(D2D1_POINT_2F point)
 
 bool CompositeWidget::handle_pointer_press(D2D1_POINT_2F point)
 {
-    for (auto& child : m_children)
+    auto& children = ChildrenProperty->get_values(this);
+    for (auto& child : children)
     {
         if (child->hit_test(point))
         {
@@ -82,7 +84,8 @@ bool CompositeWidget::handle_pointer_press(D2D1_POINT_2F point)
 
 bool CompositeWidget::handle_pointer_release(D2D1_POINT_2F point)
 {
-    for (auto& child : m_children)
+    auto& children = ChildrenProperty->get_values(this);
+    for (auto& child : children)
     {
         if (child->hit_test(point))
         {

@@ -26,7 +26,7 @@ namespace DirectWidget {
             void set_orientation(STACK_LAYOUT_ORIENTATION value) { set_property(OrientationProperty, value); }
             
             StackLayout() {
-                register_property(OrientationProperty, m_orientation);
+                register_dependency(OrientationProperty);
             }
 
             // layout
@@ -34,10 +34,6 @@ namespace DirectWidget {
             void layout(LayoutContext& context) const override;
 
             SIZE_F measure(const SIZE_F& available_size) const override;
-
-        private:
-
-            STACK_LAYOUT_ORIENTATION m_orientation;
         };
 
     }
